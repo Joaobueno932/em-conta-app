@@ -1,13 +1,9 @@
-export type PaymentMethod = 'pix' | 'boleto' | 'card';
-export type PaymentStatus = 'pending' | 'processing' | 'confirmed' | 'failed';
+export type PixStatus = 'available' | 'unavailable' | 'paid';
 
-export interface Payment {
-  id: string;
+export interface PixPayment {
   invoiceId: string;
-  amount: number;
-  method: PaymentMethod;
-  status: PaymentStatus;
-  paidAt?: string;
-  pixCode?: string;
-  pixQrCodeUrl?: string;
+  status: PixStatus;
+  pixCode: string | null;
+  qrCodeImage: string | null;
+  expiresAt: string | null;
 }

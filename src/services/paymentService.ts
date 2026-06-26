@@ -1,19 +1,30 @@
-import { Payment } from '@/types/payment';
+import { PixPayment } from '@/types/payment';
+import { mockInvoices } from '@/mocks/invoices.mock';
 
-const mockPixCode =
-  '00020126580014BR.GOV.BCB.PIX0136em-conta-pix-key@emconta.com.br5204000053039865802BR5925Em Conta Energia Renovavel6009SAO PAULO62070503***6304';
+const BASE_PIX =
+  '00020126580014BR.GOV.BCB.PIX0136em-conta-pix-key@emconta.com.br' +
+  '5204000053039865802BR5925Em Conta Energia Renovavel6009SAO PAULO';
 
 export const paymentService = {
-  async getPixCode(invoiceId: string): Promise<Payment> {
-    await new Promise((res) => setTimeout(res, 1000));
+  async getPixByInvoiceId(invoiceId: string): Promise<PixPayment> {
+    await new Promise((res) => setTimeout(res, 900));
+
+    const invoice = mockInvoices.find((i) => i.id === invoiceId);
+
+    if (!invoice) {
+      return { invoiceId, status: 'unavailable', pixCode: null, qrCodeImage: null, expiresAt: null };
+    }
+
+    if (invoice.status === 'paid') {
+      return { invoiceId, status: 'paid', pixCode: null, qrCodeImage: null, expiresAt: null };
+    }
+
     return {
-      id: `pay_${invoiceId}`,
       invoiceId,
-      amount: 187.5,
-      method: 'pix',
-      status: 'pending',
-      pixCode: mockPixCode,
-      pixQrCodeUrl: undefined,
+      status: 'available',
+      pixCode: `${BASE_PIX}62090510${invoiceId.toUpperCase()}6304`,
+      qrCodeImage: null,
+      expiresAt: `${invoice.dueDate}T23:59:59`,
     };
   },
 };
