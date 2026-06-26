@@ -143,7 +143,10 @@ export default function PaymentScreen() {
             <View style={styles.summaryInfo}>
               <Text style={styles.summaryMonth}>{formatMonth(invoice.referenceMonth)}</Text>
               <Text style={styles.summaryUnit}>{invoice.unitName}</Text>
-              <Text style={styles.summaryDue}>Vence em {formatDate(invoice.dueDate)}</Text>
+              <Text style={styles.summaryDue}>
+                {invoice.status === 'overdue' ? 'Venceu em' : 'Vence em'}{' '}
+                {formatDate(invoice.dueDate)}
+              </Text>
             </View>
             <View style={styles.summaryRight}>
               <Text style={styles.summaryAmount}>{formatCurrency(invoice.amount)}</Text>
