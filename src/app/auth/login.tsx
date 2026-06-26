@@ -8,11 +8,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Ionicons } from '@expo/vector-icons';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { authService } from '@/services/authService';
@@ -22,17 +24,21 @@ import { fontFamily, fontSize } from '@/constants/typography';
 import { spacing, radius } from '@/constants/spacing';
 
 const loginSchema = z.object({
-  email: z.string().min(1, 'Informe seu e-mail'),
-  password: z.string().min(1, 'Informe sua senha'),
+  email: z.string().min(1, 'Informe seu e-mail ou telefone.'),
+  password: z.string().min(1, 'Informe sua senha.'),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
   const [apiError, setApiError] = useState('');
-  const setAuth = useAuthStore((s) => s.setAuth);
+  const { setAuth, onboardingCompleted } = useAuthStore();
 
-  const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
 
@@ -41,10 +47,18 @@ export default function LoginScreen() {
     try {
       const { token, user } = await authService.login(data);
       setAuth(token, user);
-      router.replace('/auth/onboarding');
+      router.replace(onboardingCompleted ? '/(tabs)/home' : '/auth/onboarding');
     } catch (err: any) {
       setApiError(err.message ?? 'Não foi possível entrar. Tente novamente.');
     }
+  }
+
+  function handleForgotPassword() {
+    Alert.alert('Em breve', 'A recuperação de senha estará disponível em breve.');
+  }
+
+  function handleRegister() {
+    Alert.alert('Em breve', 'O cadastro estará disponível em breve.');
   }
 
   return (
@@ -69,7 +83,9 @@ export default function LoginScreen() {
             resizeMode="contain"
           />
           <Text style={styles.title}>Acesse sua conta</Text>
-          <Text style={styles.subtitle}>Veja sua economia de energia</Text>
+          <Text style={styles.subtitle}>
+            Entre para acompanhar suas faturas, avisos e pagamentos.
+          </Text>
         </View>
 
         <View style={styles.form}>
@@ -78,12 +94,13 @@ export default function LoginScreen() {
             name="email"
             render={({ field: { onChange, value } }) => (
               <Input
-                label="E-mail ou CPF"
+                label="E-mail ou telefone"
                 placeholder="seu@email.com"
                 value={value}
                 onChangeText={onChange}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
                 error={errors.email?.message}
               />
             )}
@@ -106,6 +123,12 @@ export default function LoginScreen() {
 
           {!!apiError && (
             <View style={styles.errorBox}>
+              <Ionicons
+                name="alert-circle-outline"
+                size={20}
+                color={colors.error}
+                style={styles.errorIcon}
+              />
               <Text style={styles.errorText}>{apiError}</Text>
             </View>
           )}
@@ -118,19 +141,27 @@ export default function LoginScreen() {
           style={styles.loginBtn}
         />
 
-        <TouchableOpacity style={styles.forgotBtn}>
+        <TouchableOpacity
+          style={styles.forgotBtn}
+          onPress={handleForgotPassword}
+          activeOpacity={0.7}
+        >
           <Text style={styles.forgotText}>Esqueci minha senha</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.registerCard} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.registerCard}
+          onPress={handleRegister}
+          activeOpacity={0.8}
+        >
           <View style={styles.registerIcon}>
-            <Text style={styles.registerPlus}>+</Text>
+            <Ionicons name="person-add-outline" size={22} color={colors.white} />
           </View>
           <View style={styles.registerInfo}>
             <Text style={styles.registerTitle}>Quero me cadastrar</Text>
             <Text style={styles.registerSub}>Calcule sua economia agora</Text>
           </View>
-          <Text style={styles.registerArrow}>›</Text>
+          <Ionicons name="chevron-forward" size={22} color={colors.primary} />
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -138,16 +169,29 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.surface },
+  flex: {
+    flex: 1,
+    backgroundColor: colors.surface,
+  },
   container: {
     flexGrow: 1,
     paddingHorizontal: spacing.xl,
-    paddingTop: 48,
+    paddingTop: 52,
     paddingBottom: spacing.xl,
   },
-  logoArea: { alignItems: 'center', marginBottom: spacing.xl },
-  logo: { width: 220, height: 80 },
-  mascote: { width: 160, height: 160, marginVertical: 8 },
+  logoArea: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  logo: {
+    width: 220,
+    height: 80,
+  },
+  mascote: {
+    width: 160,
+    height: 160,
+    marginVertical: 8,
+  },
   title: {
     fontFamily: fontFamily.black,
     fontSize: fontSize.h1,
@@ -156,27 +200,48 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontFamily: fontFamily.bold,
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     color: colors.textLight,
+    textAlign: 'center',
+    lineHeight: 24,
+    maxWidth: 280,
   },
-  form: { marginBottom: spacing.base },
+  form: {
+    marginBottom: spacing.sm,
+  },
   errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     backgroundColor: colors.errorBg,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorIcon: {
+    flexShrink: 0,
   },
   errorText: {
+    flex: 1,
     fontFamily: fontFamily.bold,
     fontSize: fontSize.base,
     color: colors.error,
-    textAlign: 'center',
+    lineHeight: 20,
   },
-  loginBtn: { width: '100%' },
-  forgotBtn: { alignItems: 'center', marginVertical: spacing.base },
+  loginBtn: {
+    width: '100%',
+    marginTop: spacing.base,
+  },
+  forgotBtn: {
+    alignItems: 'center',
+    paddingVertical: spacing.base,
+    marginBottom: spacing.xs,
+  },
   forgotText: {
     fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     color: colors.primaryDark,
   },
   registerCard: {
@@ -196,14 +261,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  registerPlus: {
-    fontFamily: fontFamily.black,
-    fontSize: 28,
-    color: colors.white,
-    lineHeight: 32,
+  registerInfo: {
+    flex: 1,
   },
-  registerInfo: { flex: 1 },
   registerTitle: {
     fontFamily: fontFamily.black,
     fontSize: fontSize.xl,
@@ -214,11 +276,5 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textMedium,
     marginTop: 2,
-  },
-  registerArrow: {
-    fontFamily: fontFamily.black,
-    fontSize: 28,
-    color: colors.primary,
-    lineHeight: 32,
   },
 });

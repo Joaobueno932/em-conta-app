@@ -18,7 +18,7 @@ export const authService = {
       return { token, user: mockUser };
     }
 
-    throw new Error('E-mail ou senha incorretos. Tente novamente.');
+    throw new Error('Dados inválidos. Verifique e tente novamente.');
   },
 
   async logout(): Promise<void> {
