@@ -4,6 +4,7 @@ import { mockUser, MOCK_EMAIL, MOCK_PASSWORD } from '@/mocks/user.mock';
 import { storageService } from './storageService';
 
 const TOKEN_KEY = 'auth_token';
+const ONBOARDING_KEY = 'onboarding_completed';
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<{ token: string; user: User }> {
@@ -22,7 +23,10 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
-    await storageService.deleteItem(TOKEN_KEY);
+    await Promise.all([
+      storageService.deleteItem(TOKEN_KEY),
+      storageService.deleteItem(ONBOARDING_KEY),
+    ]);
   },
 
   async getStoredToken(): Promise<string | null> {
