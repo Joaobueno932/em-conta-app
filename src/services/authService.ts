@@ -1,7 +1,7 @@
-import * as SecureStore from 'expo-secure-store';
 import { LoginCredentials } from '@/types/auth';
 import { User } from '@/types/user';
 import { mockUser, MOCK_EMAIL, MOCK_PASSWORD } from '@/mocks/user.mock';
+import { storageService } from './storageService';
 
 const TOKEN_KEY = 'auth_token';
 
@@ -14,7 +14,7 @@ export const authService = {
       credentials.password === MOCK_PASSWORD
     ) {
       const token = 'mock_token_emconta_2026';
-      await SecureStore.setItemAsync(TOKEN_KEY, token);
+      await storageService.setItem(TOKEN_KEY, token);
       return { token, user: mockUser };
     }
 
@@ -22,10 +22,10 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await storageService.deleteItem(TOKEN_KEY);
   },
 
   async getStoredToken(): Promise<string | null> {
-    return SecureStore.getItemAsync(TOKEN_KEY);
+    return storageService.getItem(TOKEN_KEY);
   },
 };

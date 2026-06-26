@@ -7,9 +7,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
-import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
+import { storageService } from '@/services/storageService';
 import { useAuthStore } from '@/stores/authStore';
 import { colors } from '@/constants/colors';
 import { fontFamily, fontSize } from '@/constants/typography';
@@ -20,19 +19,16 @@ const ONBOARDING_KEY = 'onboarding_completed';
 const slides = [
   {
     image: require('@/assets/images/mascote-feliz.png'),
-    icon: 'document-text-outline' as const,
     title: 'Bem-vindo ao Em Conta!',
     desc: 'Acompanhe suas faturas, avisos e pagamentos de energia em um só lugar.',
   },
   {
     image: require('@/assets/images/mascote-fatura.png'),
-    icon: 'document-text-outline' as const,
     title: 'Veja suas faturas',
     desc: 'Consulte valores, vencimentos e o status de cada pagamento.',
   },
   {
     image: require('@/assets/images/mascote-voando.png'),
-    icon: 'notifications-outline' as const,
     title: 'Receba avisos importantes',
     desc: 'Fique atento a vencimentos, cobranças e recados da sua conta.',
   },
@@ -48,7 +44,7 @@ export default function OnboardingScreen() {
   async function finish() {
     if (finishing) return;
     setFinishing(true);
-    await SecureStore.setItemAsync(ONBOARDING_KEY, 'true');
+    await storageService.setItem(ONBOARDING_KEY, 'true');
     setOnboardingCompleted();
     router.replace('/(tabs)/home');
   }
@@ -69,24 +65,15 @@ export default function OnboardingScreen() {
           style={styles.logo}
           resizeMode="contain"
         />
-        <TouchableOpacity
-          style={styles.skipBtn}
-          onPress={finish}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.skipBtn} onPress={finish} activeOpacity={0.7}>
           <Text style={styles.skipText}>Pular</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
         <View style={styles.imageCircle}>
-          <Image
-            source={slide.image}
-            style={styles.mascote}
-            resizeMode="contain"
-          />
+          <Image source={slide.image} style={styles.mascote} resizeMode="contain" />
         </View>
-
         <Text style={styles.title}>{slide.title}</Text>
         <Text style={styles.desc}>{slide.desc}</Text>
       </View>

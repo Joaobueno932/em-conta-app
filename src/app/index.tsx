@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { authService } from '@/services/authService';
+import { storageService } from '@/services/storageService';
 import { useAuthStore } from '@/stores/authStore';
 import { mockUser } from '@/mocks/user.mock';
 import { Loading } from '@/components/ui/Loading';
@@ -17,7 +17,7 @@ export default function Index() {
     async function checkSession() {
       const [token, onboarding] = await Promise.all([
         authService.getStoredToken(),
-        SecureStore.getItemAsync(ONBOARDING_KEY),
+        storageService.getItem(ONBOARDING_KEY),
       ]);
 
       if (onboarding === 'true') {

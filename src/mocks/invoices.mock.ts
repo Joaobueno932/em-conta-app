@@ -39,7 +39,7 @@ export const mockInvoices: Invoice[] = [
     unitId: 'u2',
     unitName: 'Comércio',
     referenceMonth: '2026-06',
-    dueDate: '2026-07-05',
+    dueDate: '2026-06-05',
     amount: 512.0,
     status: 'overdue',
     consumption: 850,
