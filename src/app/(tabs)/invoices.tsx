@@ -1,36 +1,56 @@
-import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { router } from 'expo-router';
+import { Invoice } from '@/types/invoice';
+import { invoiceService } from '@/services/invoiceService';
+import { InvoiceCard } from '@/components/invoices/InvoiceCard';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Loading } from '@/components/ui/Loading';
 import { colors } from '@/constants/colors';
 import { fontFamily, fontSize } from '@/constants/typography';
-import { spacing, radius } from '@/constants/spacing';
+import { spacing } from '@/constants/spacing';
 
 export default function InvoicesScreen() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    invoiceService.getAll()
+      .then(setInvoices)
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Faturas</Text>
-        <Text style={styles.headerSub}>Suas cobranças e pagamentos</Text>
+        <Text style={styles.headerSub}>Acompanhe seus pagamentos e vencimentos</Text>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.body}
-        showsVerticalScrollIndicator={false}
-      >
-        <Image
-          source={require('@/assets/images/mascote-fatura.png')}
-          style={styles.mascote}
-          resizeMode="contain"
-        />
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Faturas</Text>
-          <Text style={styles.cardText}>
-            Aqui você acompanhará suas faturas e pagamentos.
-          </Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Em breve</Text>
-          </View>
-        </View>
-      </ScrollView>
+      {loading ? (
+        <Loading message="Carregando faturas..." />
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+        >
+          {invoices.length === 0 ? (
+            <EmptyState
+              icon="document-outline"
+              title="Nenhuma fatura encontrada"
+              subtitle="Quando houver faturas disponíveis, elas aparecerão aqui."
+            />
+          ) : (
+            invoices.map((invoice) => (
+              <InvoiceCard
+                key={invoice.id}
+                invoice={invoice}
+                onPress={() => router.push(`/invoice/${invoice.id}` as any)}
+              />
+            ))
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -59,57 +79,9 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     marginTop: 2,
   },
-  body: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
+  list: {
+    padding: spacing.base,
+    gap: spacing.md,
     paddingBottom: 40,
-    gap: spacing.base,
-  },
-  mascote: {
-    width: 180,
-    height: 180,
-    marginBottom: spacing.sm,
-  },
-  card: {
-    width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    padding: spacing.xl,
-    alignItems: 'center',
-    gap: spacing.sm,
-    shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.09,
-    shadowRadius: 18,
-    elevation: 4,
-  },
-  cardTitle: {
-    fontFamily: fontFamily.black,
-    fontSize: fontSize.h2,
-    color: colors.textDark,
-  },
-  cardText: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.lg,
-    color: colors.textMedium,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  badge: {
-    marginTop: spacing.xs,
-    backgroundColor: colors.greenBg,
-    borderRadius: radius.full,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderWidth: 1.5,
-    borderColor: colors.greenBorder,
-  },
-  badgeText: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.xs,
-    color: colors.primaryDark,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
   },
 });

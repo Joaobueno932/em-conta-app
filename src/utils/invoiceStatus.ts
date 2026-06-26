@@ -1,12 +1,13 @@
-import { InvoiceStatus } from '@/types/invoice';
+import { Invoice, InvoiceStatus } from '@/types/invoice';
 import { colors } from '@/constants/colors';
+import { daysUntil } from '@/utils/formatDate';
 
 export function getStatusLabel(status: InvoiceStatus): string {
   const labels: Record<InvoiceStatus, string> = {
-    paid: 'Pago',
-    pending: 'Pendente',
+    paid: 'Paga',
+    pending: 'Em aberto',
     overdue: 'Vencida',
-    upcoming: 'A vencer',
+    upcoming: 'Próxima do vencimento',
   };
   return labels[status];
 }
@@ -16,7 +17,7 @@ export function getStatusColor(status: InvoiceStatus): string {
     paid: colors.success,
     pending: colors.orange,
     overdue: colors.error,
-    upcoming: colors.primaryDark,
+    upcoming: colors.orangeDark,
   };
   return statusColors[status];
 }
@@ -26,7 +27,13 @@ export function getStatusBg(status: InvoiceStatus): string {
     paid: colors.successBg,
     pending: colors.warningBg,
     overdue: colors.errorBg,
-    upcoming: colors.greenBg,
+    upcoming: colors.orangeBg,
   };
   return bgColors[status];
+}
+
+export function isDueSoon(invoice: Invoice): boolean {
+  if (invoice.status === 'paid' || invoice.status === 'overdue') return false;
+  const days = daysUntil(invoice.dueDate);
+  return days >= 0 && days <= 5;
 }
