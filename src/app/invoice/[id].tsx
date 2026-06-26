@@ -12,35 +12,82 @@ import { Invoice } from '@/types/invoice';
 import { invoiceService } from '@/services/invoiceService';
 import { InvoiceStatusBadge } from '@/components/invoices/InvoiceStatusBadge';
 import { Loading } from '@/components/ui/Loading';
-import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/utils/formatCurrency';
-import { formatDate, formatMonth } from '@/utils/formatDate';
+import { formatDate, formatMonth, daysUntil } from '@/utils/formatDate';
 import { colors } from '@/constants/colors';
 import { fontFamily, fontSize } from '@/constants/typography';
 import { spacing, radius } from '@/constants/spacing';
+
+function getDueText(invoice: Invoice): string {
+  if (invoice.status === 'paid') return `Pago em ${formatDate(invoice.dueDate)}`;
+  const days = daysUntil(invoice.dueDate);
+  if (days > 1) return `Vence em ${days} dias`;
+  if (days === 1) return 'Vence amanhã';
+  if (days === 0) return 'Vence hoje';
+  if (days === -1) return 'Venceu ontem';
+  return `Venceu há ${Math.abs(days)} dias`;
+}
+
+function getDueColor(invoice: Invoice): string {
+  if (invoice.status === 'paid') return colors.textLight;
+  if (invoice.status === 'overdue') return colors.error;
+  const days = daysUntil(invoice.dueDate);
+  if (days <= 5) return colors.orange;
+  return colors.textLight;
+}
 
 export default function InvoiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    invoiceService.getById(id).then(setInvoice).catch(() => {
-      setError('Não foi possível carregar a fatura.');
-    }).finally(() => setLoading(false));
+    invoiceService
+      .getById(id)
+      .then(setInvoice)
+      .catch(() => setNotFound(true))
+      .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <Loading />;
-  if (error || !invoice) return <ErrorMessage message={error || 'Fatura não encontrada.'} onRetry={() => router.back()} />;
+  if (loading) return <Loading message="Carregando fatura..." />;
 
-  const canPay = invoice.status === 'pending' || invoice.status === 'overdue';
+  if (notFound || !invoice) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Detalhe da Fatura</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.notFound}>
+          <View style={styles.notFoundIconWrap}>
+            <Ionicons name="document-outline" size={40} color={colors.textMuted} />
+          </View>
+          <Text style={styles.notFoundTitle}>Fatura não encontrada</Text>
+          <Text style={styles.notFoundSub}>
+            Não conseguimos encontrar essa fatura. Volte para a lista e tente novamente.
+          </Text>
+          <Button
+            label="Voltar para faturas"
+            onPress={() => router.replace('/(tabs)/invoices' as any)}
+            variant="secondary"
+            style={{ marginTop: spacing.md }}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  const isOverdue = invoice.status === 'overdue';
+  const canPay = invoice.status !== 'paid';
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.white} />
@@ -50,8 +97,7 @@ export default function InvoiceDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Status card */}
-        <Card style={styles.statusCard}>
+        <Card style={[styles.statusCard, isOverdue && styles.statusCardOverdue]}>
           <View style={styles.statusRow}>
             <View>
               <Text style={styles.month}>{formatMonth(invoice.referenceMonth)}</Text>
@@ -59,14 +105,34 @@ export default function InvoiceDetailScreen() {
             </View>
             <InvoiceStatusBadge status={invoice.status} />
           </View>
-          <Text style={styles.amount}>{formatCurrency(invoice.amount)}</Text>
-          <Text style={styles.due}>Vence em {formatDate(invoice.dueDate)}</Text>
+          <Text style={[styles.amount, isOverdue && styles.amountOverdue]}>
+            {formatCurrency(invoice.amount)}
+          </Text>
+          <Text style={[styles.due, { color: getDueColor(invoice) }]}>
+            {getDueText(invoice)}
+          </Text>
         </Card>
 
-        {/* Detalhes */}
         <Card style={styles.detailsCard}>
           <Text style={styles.sectionTitle}>Detalhes</Text>
 
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Unidade</Text>
+            <Text style={styles.rowValue}>{invoice.unitName}</Text>
+          </View>
+          <View style={styles.separator} />
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Referência</Text>
+            <Text style={styles.rowValue}>{formatMonth(invoice.referenceMonth)}</Text>
+          </View>
+          <View style={styles.separator} />
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Vencimento</Text>
+            <Text style={[styles.rowValue, isOverdue && { color: colors.error }]}>
+              {formatDate(invoice.dueDate)}
+            </Text>
+          </View>
+          <View style={styles.separator} />
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Consumo</Text>
             <Text style={styles.rowValue}>{invoice.consumption} kWh</Text>
@@ -78,23 +144,17 @@ export default function InvoiceDetailScreen() {
               {formatCurrency(invoice.savings)}
             </Text>
           </View>
-          <View style={styles.separator} />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Vencimento</Text>
-            <Text style={styles.rowValue}>{formatDate(invoice.dueDate)}</Text>
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Referência</Text>
-            <Text style={styles.rowValue}>{formatMonth(invoice.referenceMonth)}</Text>
-          </View>
         </Card>
 
         {canPay && (
           <Button
-            label="Pagar com Pix"
-            onPress={() => router.push(`/invoice/payment?invoiceId=${invoice.id}&amount=${invoice.amount}`)}
-            style={styles.payBtn}
+            label="Pagar agora"
+            onPress={() =>
+              router.push(
+                `/invoice/payment?invoiceId=${invoice.id}&amount=${invoice.amount}` as any,
+              )
+            }
+            style={{ marginTop: spacing.sm }}
           />
         )}
 
@@ -134,8 +194,52 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   content: { padding: spacing.base, gap: spacing.md, paddingBottom: 40 },
+
+  // Not found
+  notFound: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xxxl,
+    gap: spacing.md,
+  },
+  notFoundIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notFoundTitle: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.h3,
+    color: colors.textDark,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  notFoundSub: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.lg,
+    color: colors.textMedium,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+
+  // Status card
   statusCard: {},
-  statusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm },
+  statusCardOverdue: {
+    borderWidth: 1.5,
+    borderColor: colors.error,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
+  },
   month: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.base,
@@ -153,12 +257,16 @@ const styles = StyleSheet.create({
     color: colors.textDark,
     letterSpacing: -1,
   },
+  amountOverdue: {
+    color: colors.error,
+  },
   due: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.base,
-    color: colors.textLight,
     marginTop: 4,
   },
+
+  // Details card
   detailsCard: { gap: 0 },
   sectionTitle: {
     fontFamily: fontFamily.black,
@@ -183,7 +291,8 @@ const styles = StyleSheet.create({
     color: colors.textDark,
   },
   separator: { height: 1, backgroundColor: colors.border },
-  payBtn: { width: '100%', marginTop: spacing.sm },
+
+  // Paid banner
   paidBanner: {
     flexDirection: 'row',
     alignItems: 'center',
