@@ -31,7 +31,13 @@ const STATUS_LABEL: Record<string, string> = {
   pending: 'Em aberto',
   overdue: 'Vencida',
   paid: 'Paga',
-  upcoming: 'Futura',
+  upcoming: 'Próxima',
+};
+
+const CARD_LABEL: Record<string, string> = {
+  overdue: 'FATURA VENCIDA',
+  upcoming: 'VENCIMENTO PRÓXIMO',
+  pending: 'EM ABERTO',
 };
 
 function getGreeting(): string {
@@ -78,9 +84,11 @@ export default function HomeScreen() {
   const user = useAuthStore((s) => s.user);
   const firstName = user?.name?.split(' ')[0] ?? '';
 
-  const nextInvoice = mockInvoices.find(
-    (inv) => inv.status === 'pending' || inv.status === 'overdue',
-  );
+  const nextInvoice =
+    mockInvoices.find((inv) => inv.status === 'overdue') ??
+    mockInvoices.find((inv) => inv.status === 'upcoming') ??
+    mockInvoices.find((inv) => inv.status === 'pending') ??
+    null;
   const urgentNotice =
     mockNotices.find((n) => !n.read && n.type === 'warning') ??
     mockNotices.find((n) => !n.read);
@@ -113,7 +121,9 @@ export default function HomeScreen() {
         {nextInvoice && (
           <Card style={[styles.invoiceCard, isOverdue && styles.invoiceCardOverdue]}>
             <View style={styles.cardLabelRow}>
-              <Text style={styles.cardLabel}>PRÓXIMA FATURA</Text>
+              <Text style={styles.cardLabel}>
+                {CARD_LABEL[nextInvoice.status] ?? 'PRÓXIMA FATURA'}
+              </Text>
               <Badge
                 label={STATUS_LABEL[nextInvoice.status] ?? nextInvoice.status}
                 color={isOverdue ? colors.error : colors.orangeDark}
