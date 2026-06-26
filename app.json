@@ -6,10 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "em-conta",
+    "scheme": "emconta",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.emconta.app"
+      "bundleIdentifier": "br.com.emconta.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.emconta.app"
+      "package": "br.com.emconta.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -33,6 +33,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "77da734c-48ab-4ad0-a0de-a0c271a129fb"
+      }
     }
   }
 }
