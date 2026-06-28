@@ -13,6 +13,8 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/authStore';
 import { useUnitStore } from '@/stores/unitStore';
+import { NoticeCard } from '@/components/notices/NoticeCard';
+import { getNextDueSoonInvoice, getDueSoonMessage } from '@/utils/dueSoon';
 import { mockInvoices } from '@/mocks/invoices.mock';
 import { mockNotices } from '@/mocks/notices.mock';
 import { colors } from '@/constants/colors';
@@ -95,6 +97,7 @@ export default function HomeScreen() {
     unitInvoices.find((inv) => inv.status === 'upcoming') ??
     unitInvoices.find((inv) => inv.status === 'pending') ??
     null;
+  const dueSoonInvoice = getNextDueSoonInvoice(unitInvoices);
   const urgentNotice =
     mockNotices.find((n) => !n.read && n.type === 'warning') ??
     mockNotices.find((n) => !n.read);
@@ -182,28 +185,41 @@ export default function HomeScreen() {
           </Card>
         )}
 
-        {urgentNotice && (
-          <Card style={styles.noticeCard}>
-            <View style={styles.noticeHeader}>
-              <View style={styles.noticeIconWrap}>
-                <Ionicons name="alert-circle" size={20} color={colors.orange} />
+        {dueSoonInvoice ? (
+          <NoticeCard
+            title="Vencimento próximo"
+            message={getDueSoonMessage(dueSoonInvoice)}
+            date={`Vencimento em ${formatDate(dueSoonInvoice.dueDate)}`}
+            unitName={dueSoonInvoice.unitName}
+            variant="warning"
+            highlighted
+            actionLabel="Ver fatura"
+            onPress={() => router.push(`/invoice/${dueSoonInvoice.id}` as any)}
+          />
+        ) : (
+          urgentNotice && (
+            <Card style={styles.noticeCard}>
+              <View style={styles.noticeHeader}>
+                <View style={styles.noticeIconWrap}>
+                  <Ionicons name="alert-circle" size={20} color={colors.orange} />
+                </View>
+                <Text style={styles.noticeHeaderText}>Aviso importante</Text>
+                <Badge label="Novo" color={colors.orangeDark} backgroundColor={colors.orangeBg} />
               </View>
-              <Text style={styles.noticeHeaderText}>Aviso importante</Text>
-              <Badge label="Novo" color={colors.orangeDark} backgroundColor={colors.orangeBg} />
-            </View>
-            <Text style={styles.noticeTitle}>{urgentNotice.title}</Text>
-            <Text style={styles.noticeBody} numberOfLines={3}>
-              {urgentNotice.body}
-            </Text>
-            <TouchableOpacity
-              style={styles.cardLink}
-              onPress={() => router.push('/(tabs)/notices' as any)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.cardLinkText, { color: colors.orange }]}>Ver avisos</Text>
-              <Ionicons name="arrow-forward" size={16} color={colors.orange} />
-            </TouchableOpacity>
-          </Card>
+              <Text style={styles.noticeTitle}>{urgentNotice.title}</Text>
+              <Text style={styles.noticeBody} numberOfLines={3}>
+                {urgentNotice.body}
+              </Text>
+              <TouchableOpacity
+                style={styles.cardLink}
+                onPress={() => router.push('/(tabs)/notices' as any)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.cardLinkText, { color: colors.orange }]}>Ver avisos</Text>
+                <Ionicons name="arrow-forward" size={16} color={colors.orange} />
+              </TouchableOpacity>
+            </Card>
+          )
         )}
 
         <Card>

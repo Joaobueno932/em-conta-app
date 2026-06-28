@@ -1,35 +1,71 @@
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { Invoice } from '@/types/invoice';
+import { invoiceService } from '@/services/invoiceService';
+import { useUnitStore } from '@/stores/unitStore';
+import { getDueSoonInvoices, getDueSoonMessage } from '@/utils/dueSoon';
+import { formatDate } from '@/utils/formatDate';
+import { NoticeCard } from '@/components/notices/NoticeCard';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Loading } from '@/components/ui/Loading';
 import { colors } from '@/constants/colors';
 import { fontFamily, fontSize } from '@/constants/typography';
-import { spacing, radius } from '@/constants/spacing';
+import { spacing } from '@/constants/spacing';
 
 export default function NoticesScreen() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const selectedUnit = useUnitStore((s) => s.selectedUnit);
+
+  useEffect(() => {
+    invoiceService.getAll()
+      .then(setInvoices)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const unitInvoices = selectedUnit
+    ? invoices.filter((inv) => inv.unitId === selectedUnit.id)
+    : invoices;
+  const dueSoon = getDueSoonInvoices(unitInvoices);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Avisos</Text>
-        <Text style={styles.headerSub}>Vencimentos, cobranças e recados</Text>
+        <Text style={styles.headerSub}>Fique por dentro dos seus vencimentos</Text>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.body}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.iconCircle}>
-          <Ionicons name="notifications-outline" size={64} color={colors.primary} />
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Avisos</Text>
-          <Text style={styles.cardText}>
-            Aqui você verá vencimentos, cobranças e recados.
-          </Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Em breve</Text>
-          </View>
-        </View>
-      </ScrollView>
+      {loading ? (
+        <Loading message="Carregando avisos..." />
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          {dueSoon.length === 0 ? (
+            <EmptyState
+              icon="notifications-outline"
+              title="Nenhum aviso por enquanto"
+              subtitle="Quando uma fatura estiver perto do vencimento, o aviso aparecerá aqui."
+            />
+          ) : (
+            dueSoon.map((invoice) => (
+              <NoticeCard
+                key={invoice.id}
+                title="Vencimento próximo"
+                message={getDueSoonMessage(invoice)}
+                date={`Vencimento em ${formatDate(invoice.dueDate)}`}
+                unitName={invoice.unitName}
+                variant="warning"
+                highlighted
+                actionLabel="Ver fatura"
+                onPress={() => router.push(`/invoice/${invoice.id}` as any)}
+              />
+            ))
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -58,65 +94,9 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     marginTop: 2,
   },
-  body: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxxl,
+  content: {
+    padding: spacing.base,
+    gap: spacing.md,
     paddingBottom: 40,
-    gap: spacing.base,
-  },
-  iconCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: colors.greenBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-    borderWidth: 2,
-    borderColor: colors.greenBorder,
-  },
-  card: {
-    width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    padding: spacing.xl,
-    alignItems: 'center',
-    gap: spacing.sm,
-    shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.09,
-    shadowRadius: 18,
-    elevation: 4,
-  },
-  cardTitle: {
-    fontFamily: fontFamily.black,
-    fontSize: fontSize.h2,
-    color: colors.textDark,
-  },
-  cardText: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.lg,
-    color: colors.textMedium,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  badge: {
-    marginTop: spacing.xs,
-    backgroundColor: colors.greenBg,
-    borderRadius: radius.full,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderWidth: 1.5,
-    borderColor: colors.greenBorder,
-  },
-  badgeText: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.xs,
-    color: colors.primaryDark,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
   },
 });

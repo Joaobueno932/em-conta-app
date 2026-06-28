@@ -6,7 +6,7 @@ export const mockInvoices: Invoice[] = [
     unitId: 'u1',
     unitName: 'Residência Principal',
     referenceMonth: '2026-07',
-    dueDate: '2026-07-10',
+    dueDate: '2026-07-02',
     amount: 187.5,
     status: 'pending',
     consumption: 320,
