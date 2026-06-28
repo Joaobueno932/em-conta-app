@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/authStore';
+import { useUnitStore } from '@/stores/unitStore';
 import { mockInvoices } from '@/mocks/invoices.mock';
 import { mockNotices } from '@/mocks/notices.mock';
 import { colors } from '@/constants/colors';
@@ -83,18 +84,23 @@ function SummaryRow({ icon, color, text }: { icon: IconName; color: string; text
 export default function HomeScreen() {
   const user = useAuthStore((s) => s.user);
   const firstName = user?.name?.split(' ')[0] ?? '';
+  const selectedUnit = useUnitStore((s) => s.selectedUnit);
+
+  const unitInvoices = selectedUnit
+    ? mockInvoices.filter((inv) => inv.unitId === selectedUnit.id)
+    : mockInvoices;
 
   const nextInvoice =
-    mockInvoices.find((inv) => inv.status === 'overdue') ??
-    mockInvoices.find((inv) => inv.status === 'upcoming') ??
-    mockInvoices.find((inv) => inv.status === 'pending') ??
+    unitInvoices.find((inv) => inv.status === 'overdue') ??
+    unitInvoices.find((inv) => inv.status === 'upcoming') ??
+    unitInvoices.find((inv) => inv.status === 'pending') ??
     null;
   const urgentNotice =
     mockNotices.find((n) => !n.read && n.type === 'warning') ??
     mockNotices.find((n) => !n.read);
 
-  const pendingCount = mockInvoices.filter((inv) => inv.status === 'pending').length;
-  const overdueCount = mockInvoices.filter((inv) => inv.status === 'overdue').length;
+  const pendingCount = unitInvoices.filter((inv) => inv.status === 'pending').length;
+  const overdueCount = unitInvoices.filter((inv) => inv.status === 'overdue').length;
   const unreadCount = mockNotices.filter((n) => !n.read).length;
   const allClear = overdueCount === 0 && pendingCount === 0 && unreadCount === 0;
 
@@ -118,6 +124,26 @@ export default function HomeScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        {selectedUnit && (
+          <TouchableOpacity
+            style={styles.unitCard}
+            onPress={() => router.push('/units' as any)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.unitIconWrap}>
+              <Ionicons name="home" size={22} color={colors.primary} />
+            </View>
+            <View style={styles.unitInfo}>
+              <Text style={styles.unitLabel}>Unidade ativa</Text>
+              <Text style={styles.activeUnitName} numberOfLines={1}>{selectedUnit.name}</Text>
+            </View>
+            <View style={styles.unitSwitch}>
+              <Text style={styles.unitSwitchText}>Trocar</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.primaryDark} />
+            </View>
+          </TouchableOpacity>
+        )}
+
         {nextInvoice && (
           <Card style={[styles.invoiceCard, isOverdue && styles.invoiceCardOverdue]}>
             <View style={styles.cardLabelRow}>
@@ -282,6 +308,54 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: 40,
     gap: spacing.base,
+  },
+  // Active unit card
+  unitCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: spacing.base,
+    borderWidth: 1,
+    borderColor: colors.greenBorder,
+    shadowColor: colors.primaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  unitIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.greenBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unitInfo: { flex: 1 },
+  unitLabel: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  activeUnitName: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.lg,
+    color: colors.textDark,
+    marginTop: 2,
+  },
+  unitSwitch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  unitSwitchText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.sm,
+    color: colors.primaryDark,
   },
   // Invoice card
   invoiceCard: {

@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useUnitStore } from '@/stores/unitStore';
 import { colors } from '@/constants/colors';
 import { fontFamily } from '@/constants/typography';
 
@@ -24,6 +26,13 @@ function TabIcon({ name, focused }: TabIconProps) {
 }
 
 export default function TabsLayout() {
+  const hydrated = useUnitStore((s) => s.hydrated);
+  const loadUnits = useUnitStore((s) => s.loadUnits);
+
+  useEffect(() => {
+    if (!hydrated) loadUnits();
+  }, [hydrated]);
+
   return (
     <Tabs
       screenOptions={{

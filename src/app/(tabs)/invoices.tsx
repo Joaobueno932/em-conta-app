@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Invoice } from '@/types/invoice';
 import { invoiceService } from '@/services/invoiceService';
+import { useUnitStore } from '@/stores/unitStore';
 import { getPendingChargesFromInvoices } from '@/utils/charges';
 import { InvoiceCard } from '@/components/invoices/InvoiceCard';
 import { PendingChargeCard } from '@/components/invoices/PendingChargeCard';
@@ -16,6 +17,7 @@ import { spacing, radius } from '@/constants/spacing';
 export default function InvoicesScreen() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const selectedUnit = useUnitStore((s) => s.selectedUnit);
 
   useEffect(() => {
     invoiceService.getAll()
@@ -23,7 +25,11 @@ export default function InvoicesScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  const pendingCharges = getPendingChargesFromInvoices(invoices);
+  const unitInvoices = selectedUnit
+    ? invoices.filter((inv) => inv.unitId === selectedUnit.id)
+    : invoices;
+
+  const pendingCharges = getPendingChargesFromInvoices(unitInvoices);
   const chargeCount = pendingCharges.length;
 
   return (
@@ -31,6 +37,17 @@ export default function InvoicesScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Faturas</Text>
         <Text style={styles.headerSub}>Acompanhe seus pagamentos e vencimentos</Text>
+        {selectedUnit && (
+          <TouchableOpacity
+            style={styles.unitChip}
+            onPress={() => router.push('/units' as any)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="home" size={14} color={colors.primaryDark} />
+            <Text style={styles.unitChipText} numberOfLines={1}>{selectedUnit.name}</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.primaryDark} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {loading ? (
@@ -78,14 +95,14 @@ export default function InvoicesScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Todas as faturas</Text>
 
-            {invoices.length === 0 ? (
+            {unitInvoices.length === 0 ? (
               <EmptyState
                 icon="document-outline"
                 title="Nenhuma fatura encontrada"
                 subtitle="Quando houver faturas disponíveis, elas aparecerão aqui."
               />
             ) : (
-              invoices.map((invoice) => (
+              unitInvoices.map((invoice) => (
                 <InvoiceCard
                   key={invoice.id}
                   invoice={invoice}
@@ -123,6 +140,26 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.textLight,
     marginTop: 2,
+  },
+  unitChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginTop: spacing.md,
+    backgroundColor: colors.greenBg,
+    borderWidth: 1,
+    borderColor: colors.greenBorder,
+    borderRadius: radius.full,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    maxWidth: '100%',
+  },
+  unitChipText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.sm,
+    color: colors.primaryDark,
+    flexShrink: 1,
   },
   content: {
     padding: spacing.base,

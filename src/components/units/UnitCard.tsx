@@ -18,26 +18,45 @@ const statusColor: Record<Unit['status'], string> = {
   pending: colors.orange,
 };
 
+const typeLabel: Record<Unit['type'], string> = {
+  residential: 'Residencial',
+  commercial: 'Comercial',
+};
+
+const typeIcon: Record<Unit['type'], React.ComponentProps<typeof Ionicons>['name']> = {
+  residential: 'home-outline',
+  commercial: 'storefront-outline',
+};
+
 interface UnitCardProps {
   unit: Unit;
-  onPress?: () => void;
+  isActive?: boolean;
+  onSelect?: () => void;
 }
 
-export function UnitCard({ unit, onPress }: UnitCardProps) {
+export function UnitCard({ unit, isActive = false, onSelect }: UnitCardProps) {
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8} disabled={!onPress}>
+    <View style={[styles.card, isActive && styles.cardActive]}>
       <View style={styles.header}>
-        <View style={styles.iconWrap}>
-          <Ionicons name="home-outline" size={24} color={colors.primary} />
+        <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
+          <Ionicons name={typeIcon[unit.type]} size={24} color={colors.primary} />
         </View>
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>{unit.name}</Text>
-          <Text style={styles.address} numberOfLines={1}>{unit.address} — {unit.city}/{unit.state}</Text>
-        </View>
-        <View style={[styles.statusDot, { backgroundColor: statusColor[unit.status] }]}>
-          <Text style={styles.statusText}>{statusLabel[unit.status]}</Text>
+          <Text style={styles.address} numberOfLines={1}>
+            {unit.address} — {unit.city}/{unit.state}
+          </Text>
+          <View style={styles.tagsRow}>
+            <View style={styles.typeTag}>
+              <Text style={styles.typeText}>{typeLabel[unit.type]}</Text>
+            </View>
+            <View style={[styles.statusTag, { backgroundColor: statusColor[unit.status] }]}>
+              <Text style={styles.statusText}>{statusLabel[unit.status]}</Text>
+            </View>
+          </View>
         </View>
       </View>
+
       <View style={styles.stats}>
         <View style={styles.stat}>
           <Text style={styles.statLabel}>Consumo</Text>
@@ -49,7 +68,18 @@ export function UnitCard({ unit, onPress }: UnitCardProps) {
           <Text style={[styles.statValue, { color: colors.primary }]}>{unit.savingsPercent}%</Text>
         </View>
       </View>
-    </TouchableOpacity>
+
+      {isActive ? (
+        <View style={styles.activeBadge}>
+          <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+          <Text style={styles.activeBadgeText}>Unidade ativa</Text>
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.selectBtn} onPress={onSelect} activeOpacity={0.8}>
+          <Text style={styles.selectBtnText}>Selecionar unidade</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
@@ -59,11 +89,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.base,
     gap: spacing.md,
+    borderWidth: 2,
+    borderColor: 'transparent',
     shadowColor: colors.primaryDark,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.09,
     shadowRadius: 18,
     elevation: 4,
+  },
+  cardActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.greenBgMid,
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   iconWrap: {
@@ -74,7 +110,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  info: { flex: 1 },
+  iconWrapActive: {
+    backgroundColor: colors.greenAccentLight,
+  },
+  info: { flex: 1, gap: 2 },
   name: {
     fontFamily: fontFamily.extraBold,
     fontSize: fontSize.xl,
@@ -84,9 +123,26 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.sm,
     color: colors.textLight,
-    marginTop: 2,
   },
-  statusDot: {
+  tagsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  typeTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    backgroundColor: colors.greenBg,
+    borderWidth: 1,
+    borderColor: colors.greenBorder,
+  },
+  typeText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.xs,
+    color: colors.primaryDark,
+  },
+  statusTag: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radius.full,
@@ -118,5 +174,38 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: colors.border,
     marginVertical: 4,
+  },
+  activeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    height: 52,
+    borderRadius: radius.button,
+    backgroundColor: colors.greenBg,
+    borderWidth: 1.5,
+    borderColor: colors.greenBorder,
+  },
+  activeBadgeText: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.base,
+    color: colors.primaryDark,
+  },
+  selectBtn: {
+    height: 52,
+    borderRadius: radius.button,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  selectBtnText: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.base,
+    color: colors.white,
   },
 });
