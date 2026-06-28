@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Notice, NoticeType } from '@/types/notice';
 import { noticeService } from '@/services/noticeService';
+import { useNoticeStore } from '@/stores/noticeStore';
 import { mockUnits } from '@/mocks/units.mock';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Loading';
@@ -42,13 +43,14 @@ export default function NoticeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [notice, setNotice] = useState<Notice | null>(null);
   const [loading, setLoading] = useState(true);
+  const markAsRead = useNoticeStore((s) => s.markAsRead);
 
   useEffect(() => {
     noticeService
       .getById(id)
       .then((found) => {
         setNotice(found);
-        if (!found.read) noticeService.markAsRead(found.id);
+        markAsRead(found.id);
       })
       .catch(() => setNotice(null))
       .finally(() => setLoading(false));
@@ -104,6 +106,11 @@ export default function NoticeDetailScreen() {
               <Text style={styles.metaText}>{unitName}</Text>
             </View>
           )}
+        </View>
+
+        <View style={styles.readTag}>
+          <Ionicons name="checkmark-done" size={16} color={colors.primary} />
+          <Text style={styles.readTagText}>Marcado como lido</Text>
         </View>
 
         {notice.invoiceId && (
@@ -196,6 +203,17 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bold,
     fontSize: fontSize.base,
     color: colors.textMedium,
+  },
+  readTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.xs,
+  },
+  readTagText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.sm,
+    color: colors.primary,
   },
   invoiceBtn: {
     alignSelf: 'stretch',

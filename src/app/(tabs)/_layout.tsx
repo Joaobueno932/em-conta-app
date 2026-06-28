@@ -3,6 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUnitStore } from '@/stores/unitStore';
+import { useNoticeStore } from '@/stores/noticeStore';
+import { noticeService } from '@/services/noticeService';
 import { colors } from '@/constants/colors';
 import { fontFamily } from '@/constants/typography';
 
@@ -28,10 +30,25 @@ function TabIcon({ name, focused }: TabIconProps) {
 export default function TabsLayout() {
   const hydrated = useUnitStore((s) => s.hydrated);
   const loadUnits = useUnitStore((s) => s.loadUnits);
+  const selectedUnit = useUnitStore((s) => s.selectedUnit);
+
+  const noticesHydrated = useNoticeStore((s) => s.hydrated);
+  const loadReadNotices = useNoticeStore((s) => s.loadReadNotices);
+  const readIds = useNoticeStore((s) => s.readIds);
 
   useEffect(() => {
     if (!hydrated) loadUnits();
   }, [hydrated]);
+
+  useEffect(() => {
+    if (!noticesHydrated) loadReadNotices();
+  }, [noticesHydrated]);
+
+  const unreadCount = noticesHydrated
+    ? noticeService
+        .listForUnit(selectedUnit?.id)
+        .filter((n) => !readIds.includes(n.id)).length
+    : 0;
 
   return (
     <Tabs
@@ -70,6 +87,8 @@ export default function TabsLayout() {
         name="notices"
         options={{
           title: 'Avisos',
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadgeStyle: styles.tabBadge,
           tabBarIcon: ({ focused }) => (
             <TabIcon
               name={focused ? 'notifications' : 'notifications-outline'}
@@ -107,6 +126,12 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.extraBold,
     fontSize: 11,
     marginTop: 2,
+  },
+  tabBadge: {
+    backgroundColor: colors.error,
+    color: colors.white,
+    fontFamily: fontFamily.extraBold,
+    fontSize: 10,
   },
   iconWrap: {
     width: 52,

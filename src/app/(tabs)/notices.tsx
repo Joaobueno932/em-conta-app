@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Notice } from '@/types/notice';
 import { noticeService } from '@/services/noticeService';
 import { useUnitStore } from '@/stores/unitStore';
+import { useNoticeStore } from '@/stores/noticeStore';
 import { NoticeCard } from '@/components/notices/NoticeCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Loading } from '@/components/ui/Loading';
@@ -24,6 +25,7 @@ export default function NoticesScreen() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const selectedUnit = useUnitStore((s) => s.selectedUnit);
+  const readIds = useNoticeStore((s) => s.readIds);
 
   useEffect(() => {
     let active = true;
@@ -34,6 +36,8 @@ export default function NoticesScreen() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [selectedUnit?.id]);
+
+  const unreadCount = notices.filter((n) => !readIds.includes(n.id)).length;
 
   return (
     <View style={styles.container}>
@@ -62,18 +66,25 @@ export default function NoticesScreen() {
               subtitle="Quando houver recados ou comunicados importantes, eles aparecerão aqui."
             />
           ) : (
-            notices.map((notice) => (
-              <NoticeCard
-                key={notice.id}
-                type={notice.type}
-                title={notice.title}
-                message={notice.message}
-                date={formatNoticeDate(notice.createdAt)}
-                unitName={selectedUnit?.name}
-                highlighted={notice.type === 'due_soon' || notice.type === 'charge'}
-                onPress={() => router.push(`/notices/${notice.id}` as any)}
-              />
-            ))
+            <>
+              <Text style={styles.summary}>
+                {unreadCount > 0
+                  ? `${unreadCount} ${unreadCount === 1 ? 'aviso não lido' : 'avisos não lidos'}`
+                  : 'Todos os avisos foram lidos.'}
+              </Text>
+              {notices.map((notice) => (
+                <NoticeCard
+                  key={notice.id}
+                  type={notice.type}
+                  title={notice.title}
+                  message={notice.message}
+                  date={formatNoticeDate(notice.createdAt)}
+                  unitName={selectedUnit?.name}
+                  read={readIds.includes(notice.id)}
+                  onPress={() => router.push(`/notices/${notice.id}` as any)}
+                />
+              ))}
+            </>
           )}
         </ScrollView>
       )}
@@ -129,5 +140,11 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     gap: spacing.md,
     paddingBottom: 40,
+  },
+  summary: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.sm,
+    color: colors.textLight,
+    marginBottom: -spacing.xs,
   },
 });

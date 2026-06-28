@@ -20,7 +20,27 @@ function toDueSoonNotice(invoice: Invoice): Notice {
   };
 }
 
+/**
+ * Lista combinada (síncrona) de avisos da central para uma unidade:
+ * vencimentos próximos derivados das faturas + avisos mockados.
+ * Os derivados aparecem no topo. Sem `unitId`, considera todas as unidades.
+ */
+function listForUnit(unitId?: string): Notice[] {
+  const invoices = unitId
+    ? mockInvoices.filter((i) => i.unitId === unitId)
+    : mockInvoices;
+  const derived = getDueSoonInvoices(invoices).map(toDueSoonNotice);
+
+  const mocked = unitId
+    ? mockNotices.filter((n) => n.unitId === unitId)
+    : mockNotices;
+
+  return [...derived, ...mocked];
+}
+
 export const noticeService = {
+  listForUnit,
+
   async getAll(): Promise<Notice[]> {
     await new Promise((res) => setTimeout(res, 600));
     return mockNotices;
@@ -53,17 +73,7 @@ export const noticeService = {
    */
   async getByUnitIdWithDerivedDueSoon(unitId?: string): Promise<Notice[]> {
     await new Promise((res) => setTimeout(res, 500));
-
-    const invoices = unitId
-      ? mockInvoices.filter((i) => i.unitId === unitId)
-      : mockInvoices;
-    const derived = getDueSoonInvoices(invoices).map(toDueSoonNotice);
-
-    const mocked = unitId
-      ? mockNotices.filter((n) => n.unitId === unitId)
-      : mockNotices;
-
-    return [...derived, ...mocked];
+    return listForUnit(unitId);
   },
 
   async markAsRead(id: string): Promise<void> {

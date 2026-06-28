@@ -24,6 +24,8 @@ interface NoticeCardProps {
   date?: string;
   unitName?: string;
   highlighted?: boolean;
+  /** Status de leitura. Quando `false`, o card recebe destaque de "não lido". */
+  read?: boolean;
   /** Quando informado, exibe um botão de ação (ex.: "Ver fatura"). Sem ele, mostra "Abrir aviso". */
   actionLabel?: string;
   onPress?: () => void;
@@ -36,16 +38,21 @@ export function NoticeCard({
   date,
   unitName,
   highlighted = false,
+  read,
   actionLabel,
   onPress,
 }: NoticeCardProps) {
   const config = typeConfig[type];
+  const isUnread = read === false;
+  const isRead = read === true;
+  const showBorder = highlighted || isUnread;
 
   return (
     <TouchableOpacity
       style={[
         styles.card,
-        highlighted && { borderLeftWidth: 4, borderLeftColor: config.color },
+        isRead && styles.cardRead,
+        showBorder && { borderLeftWidth: 4, borderLeftColor: config.color },
       ]}
       onPress={onPress}
       activeOpacity={onPress ? 0.85 : 1}
@@ -61,6 +68,14 @@ export function NoticeCard({
           </Text>
           {!!unitName && <Text style={styles.unit} numberOfLines={1}>{unitName}</Text>}
         </View>
+        {isUnread && (
+          <View style={[styles.newBadge, { backgroundColor: config.color }]}>
+            <Text style={styles.newBadgeText}>Novo</Text>
+          </View>
+        )}
+        {isRead && (
+          <Ionicons name="checkmark-done" size={18} color={colors.textMuted} />
+        )}
       </View>
 
       <Text style={styles.message} numberOfLines={3}>{message}</Text>
@@ -101,7 +116,23 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 3,
   },
+  cardRead: {
+    backgroundColor: colors.surfaceLight,
+    shadowOpacity: 0.04,
+    elevation: 1,
+  },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  newBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    flexShrink: 0,
+  },
+  newBadgeText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.xs,
+    color: colors.white,
+  },
   iconWrap: {
     width: 44,
     height: 44,
