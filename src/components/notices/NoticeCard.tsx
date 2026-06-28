@@ -1,51 +1,55 @@
 import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { NoticeType } from '@/types/notice';
 import { colors } from '@/constants/colors';
 import { fontFamily, fontSize } from '@/constants/typography';
 import { radius, spacing } from '@/constants/spacing';
 
-export type NoticeVariant = 'warning' | 'info' | 'success' | 'alert';
-
-const variantConfig: Record<
-  NoticeVariant,
+const typeConfig: Record<
+  NoticeType,
   { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }
 > = {
-  warning: { icon: 'time-outline', color: colors.orange, bg: colors.orangeBg },
-  info: { icon: 'information-circle-outline', color: colors.primaryDark, bg: colors.greenBg },
-  success: { icon: 'checkmark-circle-outline', color: colors.primary, bg: colors.successBg },
-  alert: { icon: 'alert-circle-outline', color: colors.error, bg: colors.errorBg },
+  due_soon: { icon: 'time-outline', color: colors.orange, bg: colors.orangeBg },
+  charge: { icon: 'alert-circle-outline', color: colors.error, bg: colors.errorBg },
+  message: { icon: 'chatbubble-ellipses-outline', color: colors.primaryDark, bg: colors.greenBg },
+  maintenance: { icon: 'construct-outline', color: colors.textMedium, bg: colors.border },
+  general: { icon: 'information-circle-outline', color: colors.primaryDark, bg: colors.greenBg },
 };
 
 interface NoticeCardProps {
+  type?: NoticeType;
   title: string;
   message: string;
   date?: string;
   unitName?: string;
-  variant?: NoticeVariant;
   highlighted?: boolean;
+  /** Quando informado, exibe um botão de ação (ex.: "Ver fatura"). Sem ele, mostra "Abrir aviso". */
   actionLabel?: string;
   onPress?: () => void;
 }
 
 export function NoticeCard({
+  type = 'general',
   title,
   message,
   date,
   unitName,
-  variant = 'info',
   highlighted = false,
   actionLabel,
   onPress,
 }: NoticeCardProps) {
-  const config = variantConfig[variant];
+  const config = typeConfig[type];
 
   return (
-    <View
+    <TouchableOpacity
       style={[
         styles.card,
         highlighted && { borderLeftWidth: 4, borderLeftColor: config.color },
       ]}
+      onPress={onPress}
+      activeOpacity={onPress ? 0.85 : 1}
+      disabled={!onPress}
     >
       <View style={styles.header}>
         <View style={[styles.iconWrap, { backgroundColor: config.bg }]}>
@@ -59,7 +63,7 @@ export function NoticeCard({
         </View>
       </View>
 
-      <Text style={styles.message}>{message}</Text>
+      <Text style={styles.message} numberOfLines={3}>{message}</Text>
 
       {!!date && (
         <View style={styles.dateRow}>
@@ -68,17 +72,20 @@ export function NoticeCard({
         </View>
       )}
 
-      {actionLabel && onPress && (
-        <TouchableOpacity
-          style={[styles.action, { backgroundColor: config.color }]}
-          onPress={onPress}
-          activeOpacity={0.85}
-        >
+      {actionLabel ? (
+        <View style={[styles.action, { backgroundColor: config.color }]}>
           <Text style={styles.actionText}>{actionLabel}</Text>
           <Ionicons name="arrow-forward" size={16} color={colors.white} />
-        </TouchableOpacity>
+        </View>
+      ) : (
+        onPress && (
+          <View style={styles.openHint}>
+            <Text style={[styles.openHintText, { color: config.color }]}>Abrir aviso</Text>
+            <Ionicons name="chevron-forward" size={16} color={config.color} />
+          </View>
+        )
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -143,5 +150,16 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.black,
     fontSize: fontSize.base,
     color: colors.white,
+  },
+  openHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    gap: 2,
+    marginTop: spacing.xs,
+  },
+  openHintText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.sm,
   },
 });

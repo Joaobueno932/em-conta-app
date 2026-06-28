@@ -98,9 +98,12 @@ export default function HomeScreen() {
     unitInvoices.find((inv) => inv.status === 'pending') ??
     null;
   const dueSoonInvoice = getNextDueSoonInvoice(unitInvoices);
+  const unitNotices = selectedUnit
+    ? mockNotices.filter((n) => n.unitId === selectedUnit.id)
+    : mockNotices;
   const urgentNotice =
-    mockNotices.find((n) => !n.read && n.type === 'warning') ??
-    mockNotices.find((n) => !n.read);
+    unitNotices.find((n) => !n.read && n.type === 'charge') ??
+    unitNotices.find((n) => !n.read);
 
   const pendingCount = unitInvoices.filter((inv) => inv.status === 'pending').length;
   const overdueCount = unitInvoices.filter((inv) => inv.status === 'overdue').length;
@@ -187,11 +190,11 @@ export default function HomeScreen() {
 
         {dueSoonInvoice ? (
           <NoticeCard
+            type="due_soon"
             title="Vencimento próximo"
             message={getDueSoonMessage(dueSoonInvoice)}
             date={`Vencimento em ${formatDate(dueSoonInvoice.dueDate)}`}
             unitName={dueSoonInvoice.unitName}
-            variant="warning"
             highlighted
             actionLabel="Ver fatura"
             onPress={() => router.push(`/invoice/${dueSoonInvoice.id}` as any)}
@@ -208,7 +211,7 @@ export default function HomeScreen() {
               </View>
               <Text style={styles.noticeTitle}>{urgentNotice.title}</Text>
               <Text style={styles.noticeBody} numberOfLines={3}>
-                {urgentNotice.body}
+                {urgentNotice.message}
               </Text>
               <TouchableOpacity
                 style={styles.cardLink}

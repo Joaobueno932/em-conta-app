@@ -1,39 +1,51 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { Invoice } from '@/types/invoice';
-import { invoiceService } from '@/services/invoiceService';
+import { Ionicons } from '@expo/vector-icons';
+import { Notice } from '@/types/notice';
+import { noticeService } from '@/services/noticeService';
 import { useUnitStore } from '@/stores/unitStore';
-import { getDueSoonInvoices, getDueSoonMessage } from '@/utils/dueSoon';
-import { formatDate } from '@/utils/formatDate';
 import { NoticeCard } from '@/components/notices/NoticeCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Loading } from '@/components/ui/Loading';
 import { colors } from '@/constants/colors';
 import { fontFamily, fontSize } from '@/constants/typography';
-import { spacing } from '@/constants/spacing';
+import { spacing, radius } from '@/constants/spacing';
+
+function formatNoticeDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+}
 
 export default function NoticesScreen() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const selectedUnit = useUnitStore((s) => s.selectedUnit);
 
   useEffect(() => {
-    invoiceService.getAll()
-      .then(setInvoices)
-      .finally(() => setLoading(false));
-  }, []);
-
-  const unitInvoices = selectedUnit
-    ? invoices.filter((inv) => inv.unitId === selectedUnit.id)
-    : invoices;
-  const dueSoon = getDueSoonInvoices(unitInvoices);
+    let active = true;
+    setLoading(true);
+    noticeService
+      .getByUnitIdWithDerivedDueSoon(selectedUnit?.id)
+      .then((list) => { if (active) setNotices(list); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [selectedUnit?.id]);
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Avisos</Text>
-        <Text style={styles.headerSub}>Fique por dentro dos seus vencimentos</Text>
+        <Text style={styles.headerSub}>Veja comunicados importantes da sua unidade.</Text>
+        {selectedUnit && (
+          <View style={styles.unitChip}>
+            <Ionicons name="home" size={14} color={colors.primaryDark} />
+            <Text style={styles.unitChipText} numberOfLines={1}>{selectedUnit.name}</Text>
+          </View>
+        )}
       </View>
 
       {loading ? (
@@ -43,24 +55,23 @@ export default function NoticesScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          {dueSoon.length === 0 ? (
+          {notices.length === 0 ? (
             <EmptyState
               icon="notifications-outline"
-              title="Nenhum aviso por enquanto"
-              subtitle="Quando uma fatura estiver perto do vencimento, o aviso aparecerá aqui."
+              title="Nenhum aviso no momento"
+              subtitle="Quando houver recados ou comunicados importantes, eles aparecerão aqui."
             />
           ) : (
-            dueSoon.map((invoice) => (
+            notices.map((notice) => (
               <NoticeCard
-                key={invoice.id}
-                title="Vencimento próximo"
-                message={getDueSoonMessage(invoice)}
-                date={`Vencimento em ${formatDate(invoice.dueDate)}`}
-                unitName={invoice.unitName}
-                variant="warning"
-                highlighted
-                actionLabel="Ver fatura"
-                onPress={() => router.push(`/invoice/${invoice.id}` as any)}
+                key={notice.id}
+                type={notice.type}
+                title={notice.title}
+                message={notice.message}
+                date={formatNoticeDate(notice.createdAt)}
+                unitName={selectedUnit?.name}
+                highlighted={notice.type === 'due_soon' || notice.type === 'charge'}
+                onPress={() => router.push(`/notices/${notice.id}` as any)}
               />
             ))
           )}
@@ -93,6 +104,26 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.textLight,
     marginTop: 2,
+  },
+  unitChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginTop: spacing.md,
+    backgroundColor: colors.greenBg,
+    borderWidth: 1,
+    borderColor: colors.greenBorder,
+    borderRadius: radius.full,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    maxWidth: '100%',
+  },
+  unitChipText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.sm,
+    color: colors.primaryDark,
+    flexShrink: 1,
   },
   content: {
     padding: spacing.base,
