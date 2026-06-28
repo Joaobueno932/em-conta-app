@@ -13,6 +13,8 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/authStore';
 import { useUnitStore } from '@/stores/unitStore';
+import { useNoticeStore } from '@/stores/noticeStore';
+import { noticeService } from '@/services/noticeService';
 import { NoticeCard } from '@/components/notices/NoticeCard';
 import { getNextDueSoonInvoice, getDueSoonMessage } from '@/utils/dueSoon';
 import { mockInvoices } from '@/mocks/invoices.mock';
@@ -87,6 +89,7 @@ export default function HomeScreen() {
   const user = useAuthStore((s) => s.user);
   const firstName = user?.name?.split(' ')[0] ?? '';
   const selectedUnit = useUnitStore((s) => s.selectedUnit);
+  const readIds = useNoticeStore((s) => s.readIds);
 
   const unitInvoices = selectedUnit
     ? mockInvoices.filter((inv) => inv.unitId === selectedUnit.id)
@@ -107,7 +110,9 @@ export default function HomeScreen() {
 
   const pendingCount = unitInvoices.filter((inv) => inv.status === 'pending').length;
   const overdueCount = unitInvoices.filter((inv) => inv.status === 'overdue').length;
-  const unreadCount = mockNotices.filter((n) => !n.read).length;
+  const unreadCount = noticeService
+    .listForUnit(selectedUnit?.id)
+    .filter((n) => !readIds.includes(n.id)).length;
   const allClear = overdueCount === 0 && pendingCount === 0 && unreadCount === 0;
 
   const daysLeft = nextInvoice ? daysUntil(nextInvoice.dueDate) : null;
