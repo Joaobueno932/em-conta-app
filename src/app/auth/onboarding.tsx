@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   Image,
   StyleSheet,
   TouchableOpacity,
+  PanResponder,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Button } from '@/components/ui/Button';
@@ -28,7 +29,7 @@ const slides = [
     desc: 'Consulte valores, vencimentos e o status de cada pagamento.',
   },
   {
-    image: require('@/assets/images/mascote-voando.png'),
+    image: require('@/assets/images/mascote-fatura-sem-fundo.png'),
     title: 'Receba avisos importantes',
     desc: 'Fique atento a vencimentos, cobranças e recados da sua conta.',
   },
@@ -57,6 +58,21 @@ export default function OnboardingScreen() {
     }
   }
 
+  // Arrastar para os lados navega entre os slides (só entre eles; não finaliza).
+  const swipeResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderRelease: (_, g) => {
+        if (g.dx <= -40) {
+          setCurrent((c) => Math.min(c + 1, slides.length - 1)); // esquerda → próximo
+        } else if (g.dx >= 40) {
+          setCurrent((c) => Math.max(c - 1, 0)); // direita → anterior
+        }
+      },
+    }),
+  ).current;
+
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
@@ -70,7 +86,7 @@ export default function OnboardingScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
+      <View style={styles.content} {...swipeResponder.panHandlers}>
         <View style={styles.imageCircle}>
           <Image source={slide.image} style={styles.mascote} resizeMode="contain" />
         </View>

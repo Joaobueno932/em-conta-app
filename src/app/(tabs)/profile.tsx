@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/stores/authStore';
@@ -91,18 +91,26 @@ function ActionButton({
 export default function ProfileScreen() {
   const clearAuth = useAuthStore((s) => s.clearAuth);
 
+  async function doLogout() {
+    try {
+      await authService.logout();
+    } finally {
+      clearAuth();
+      router.replace('/auth/login');
+    }
+  }
+
   function handleLogout() {
+    // Alert.alert é no-op no web; usa o confirm nativo do navegador.
+    if (Platform.OS === 'web') {
+      const ok =
+        typeof window === 'undefined' || window.confirm('Deseja sair da sua conta?');
+      if (ok) doLogout();
+      return;
+    }
     Alert.alert('Sair', 'Deseja sair da sua conta?', [
       { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Sair',
-        style: 'destructive',
-        onPress: async () => {
-          await authService.logout();
-          clearAuth();
-          router.replace('/auth/login');
-        },
-      },
+      { text: 'Sair', style: 'destructive', onPress: doLogout },
     ]);
   }
 

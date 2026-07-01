@@ -70,7 +70,7 @@ export default function SupportScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Image
-          source={require('@/assets/images/mascote-aceno.png')}
+          source={require('@/assets/images/mascote-suporte-sem-fundo.png')}
           style={styles.mascot}
           resizeMode="contain"
         />
