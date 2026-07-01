@@ -1,118 +1,64 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Invoice } from '@/types/invoice';
-import { invoiceService } from '@/services/invoiceService';
-import { useUnitStore } from '@/stores/unitStore';
-import { getPendingChargesFromInvoices } from '@/utils/charges';
-import { InvoiceCard } from '@/components/invoices/InvoiceCard';
-import { PendingChargeCard } from '@/components/invoices/PendingChargeCard';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Loading } from '@/components/ui/Loading';
+import { mockFaturas, Fatura } from '@/mocks/faturas.mock';
+import { GradientHeader } from '@/components/ui/GradientHeader';
 import { colors } from '@/constants/colors';
 import { fontFamily, fontSize } from '@/constants/typography';
 import { spacing, radius } from '@/constants/spacing';
 
-export default function InvoicesScreen() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const selectedUnit = useUnitStore((s) => s.selectedUnit);
-
-  useEffect(() => {
-    invoiceService.getAll()
-      .then(setInvoices)
-      .finally(() => setLoading(false));
-  }, []);
-
-  const unitInvoices = selectedUnit
-    ? invoices.filter((inv) => inv.unitId === selectedUnit.id)
-    : invoices;
-
-  const pendingCharges = getPendingChargesFromInvoices(unitInvoices);
-  const chargeCount = pendingCharges.length;
-
+function FaturaCard({ fatura }: { fatura: Fatura }) {
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Faturas</Text>
-        <Text style={styles.headerSub}>Acompanhe seus pagamentos e vencimentos</Text>
-        {selectedUnit && (
-          <TouchableOpacity
-            style={styles.unitChip}
-            onPress={() => router.push('/units' as any)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="home" size={14} color={colors.primaryDark} />
-            <Text style={styles.unitChipText} numberOfLines={1}>{selectedUnit.name}</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.primaryDark} />
-          </TouchableOpacity>
-        )}
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.month}>{fatura.month}</Text>
+        <View style={styles.badge}>
+          <Ionicons name="checkmark-circle" size={14} color={colors.primary} />
+          <Text style={styles.badgeText}>Processada</Text>
+        </View>
       </View>
 
-      {loading ? (
-        <Loading message="Carregando faturas..." />
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Cobranças pendentes */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Cobranças pendentes</Text>
+      <View style={styles.valuesRow}>
+        <View style={styles.valueBlock}>
+          <Text style={styles.valueLabel}>Valor da conta</Text>
+          <Text style={styles.valueAmount}>{fatura.amount}</Text>
+        </View>
+        <View style={styles.valueBlock}>
+          <Text style={styles.valueLabel}>Você economizou</Text>
+          <Text style={[styles.valueAmount, styles.savings]}>{fatura.savings}</Text>
+        </View>
+      </View>
 
-            {chargeCount === 0 ? (
-              <View style={styles.noPending}>
-                <View style={styles.noPendingIcon}>
-                  <Ionicons name="checkmark-circle" size={28} color={colors.primary} />
-                </View>
-                <View style={styles.noPendingText}>
-                  <Text style={styles.noPendingTitle}>Nenhuma cobrança pendente</Text>
-                  <Text style={styles.noPendingSub}>
-                    Você não tem faturas em aberto no momento.
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <>
-                <Text style={styles.sectionSub}>
-                  {chargeCount === 1
-                    ? 'Você tem 1 fatura que precisa de atenção.'
-                    : `Você tem ${chargeCount} faturas que precisam de atenção.`}
-                </Text>
-                {pendingCharges.map((invoice) => (
-                  <PendingChargeCard
-                    key={invoice.id}
-                    invoice={invoice}
-                    onPress={() => router.push(`/invoice/${invoice.id}` as any)}
-                  />
-                ))}
-              </>
-            )}
-          </View>
+      <TouchableOpacity
+        style={styles.detailsButton}
+        onPress={() => router.push(`/invoice/${fatura.id}` as any)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.detailsButtonText}>Ver detalhes</Text>
+        <Ionicons name="arrow-forward" size={18} color={colors.primary} />
+      </TouchableOpacity>
+    </View>
+  );
+}
 
-          {/* Todas as faturas */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Todas as faturas</Text>
+export default function InvoicesScreen() {
+  return (
+    <View style={styles.container}>
+      {/* Header verde */}
+      <GradientHeader variant="title">
+        <Text style={styles.headerTitle}>Minhas faturas</Text>
+        <Text style={styles.headerSub}>Suas contas de energia, mês a mês</Text>
+      </GradientHeader>
 
-            {unitInvoices.length === 0 ? (
-              <EmptyState
-                icon="document-outline"
-                title="Nenhuma fatura encontrada"
-                subtitle="Quando houver faturas disponíveis, elas aparecerão aqui."
-              />
-            ) : (
-              unitInvoices.map((invoice) => (
-                <InvoiceCard
-                  key={invoice.id}
-                  invoice={invoice}
-                  onPress={() => router.push(`/invoice/${invoice.id}` as any)}
-                />
-              ))
-            )}
-          </View>
-        </ScrollView>
-      )}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {mockFaturas.map((fatura) => (
+          <FaturaCard key={fatura.id} fatura={fatura} />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -122,101 +68,94 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    backgroundColor: colors.surface,
-    paddingTop: 60,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
   headerTitle: {
     fontFamily: fontFamily.black,
     fontSize: fontSize.h1,
-    color: colors.textDark,
+    color: colors.white,
   },
   headerSub: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.base,
-    color: colors.textLight,
+    color: colors.greenAccentLight,
+    opacity: 0.9,
     marginTop: 2,
-  },
-  unitChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-    marginTop: spacing.md,
-    backgroundColor: colors.greenBg,
-    borderWidth: 1,
-    borderColor: colors.greenBorder,
-    borderRadius: radius.full,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    maxWidth: '100%',
-  },
-  unitChipText: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.sm,
-    color: colors.primaryDark,
-    flexShrink: 1,
   },
   content: {
-    padding: spacing.base,
-    gap: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: 40,
+    gap: spacing.base,
   },
-
-  // Sections
-  section: { gap: spacing.md },
-  sectionTitle: {
-    fontFamily: fontFamily.black,
-    fontSize: fontSize.xl,
-    color: colors.textDark,
-  },
-  sectionSub: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.base,
-    color: colors.textLight,
-    marginTop: -spacing.xs,
-  },
-
-  // No pending state
-  noPending: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+  // Card
+  card: {
     backgroundColor: colors.surface,
     borderRadius: radius.card,
-    padding: spacing.base,
-    borderWidth: 1,
-    borderColor: colors.greenBorder,
+    padding: spacing.xl,
+    gap: spacing.lg,
     shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 3,
   },
-  noPendingIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  month: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.h3,
+    color: colors.textDark,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: colors.greenBg,
+    borderRadius: radius.full,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  badgeText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.sm,
+    color: colors.primary,
+  },
+  valuesRow: {
+    flexDirection: 'row',
+    gap: spacing.base,
+  },
+  valueBlock: {
+    flex: 1,
+    gap: 3,
+  },
+  valueLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.md,
+    color: colors.textMedium,
+  },
+  valueAmount: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.h2,
+    color: colors.textDark,
+  },
+  savings: {
+    color: colors.primary,
+  },
+  detailsButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    gap: spacing.sm,
+    backgroundColor: colors.greenBg,
+    borderRadius: 14,
+    minHeight: 52,
+    paddingVertical: spacing.base,
   },
-  noPendingText: { flex: 1 },
-  noPendingTitle: {
+  detailsButtonText: {
     fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.base,
-    color: colors.primaryDark,
-  },
-  noPendingSub: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.sm,
-    color: colors.textLight,
-    marginTop: 2,
-    lineHeight: 18,
+    fontSize: fontSize.xl,
+    color: colors.primary,
   },
 });

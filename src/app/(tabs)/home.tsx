@@ -10,281 +10,187 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { GradientHeader } from '@/components/ui/GradientHeader';
 import { useAuthStore } from '@/stores/authStore';
 import { useUnitStore } from '@/stores/unitStore';
-import { useNoticeStore } from '@/stores/noticeStore';
-import { noticeService } from '@/services/noticeService';
-import { NoticeCard } from '@/components/notices/NoticeCard';
-import { getNextDueSoonInvoice, getDueSoonMessage } from '@/utils/dueSoon';
-import { mockInvoices } from '@/mocks/invoices.mock';
-import { mockNotices } from '@/mocks/notices.mock';
 import { colors } from '@/constants/colors';
 import { fontFamily, fontSize } from '@/constants/typography';
 import { spacing, radius } from '@/constants/spacing';
 
-type IconName = React.ComponentProps<typeof Ionicons>['name'];
+// Dados mockados desta etapa (sem integração com API)
+const MOCK = {
+  savingsMonth: 'R$ 187,40',
+  savingsTotal: 'R$ 2.146,80',
+  consumption: '412 kWh',
+  nextChargeAmount: 'R$ 243,90',
+  nextChargeDays: 5,
+  nextChargeDate: '30/06',
+  co2Avoided: '38 kg',
+};
 
-const SHORTCUTS: { label: string; icon: IconName; route: string; bg: string; iconColor: string }[] = [
-  { label: 'Faturas', icon: 'document-text-outline', route: '/(tabs)/invoices', bg: colors.greenBg, iconColor: colors.primary },
-  { label: 'Avisos', icon: 'notifications-outline', route: '/(tabs)/notices', bg: colors.orangeBg, iconColor: colors.orange },
-  { label: 'Perfil', icon: 'person-outline', route: '/(tabs)/profile', bg: colors.greenBgSubtle, iconColor: colors.primaryDark },
-  { label: 'Suporte', icon: 'headset-outline', route: '/support', bg: colors.border, iconColor: colors.textMedium },
+// Gráfico "Sua economia mês a mês" — alturas relativas (0-100).
+// Cinza (sem Em Conta) maior, verde (com Em Conta) menor.
+const CHART: { month: string; without: number; with: number }[] = [
+  { month: 'Jan', without: 90, with: 55 },
+  { month: 'Fev', without: 84, with: 50 },
+  { month: 'Mar', without: 96, with: 58 },
+  { month: 'Abr', without: 88, with: 46 },
+  { month: 'Mai', without: 92, with: 52 },
+  { month: 'Jun', without: 86, with: 44 },
 ];
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Em aberto',
-  overdue: 'Vencida',
-  paid: 'Paga',
-  upcoming: 'Próxima',
-};
-
-const CARD_LABEL: Record<string, string> = {
-  overdue: 'FATURA VENCIDA',
-  upcoming: 'VENCIMENTO PRÓXIMO',
-  pending: 'EM ABERTO',
-};
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Bom dia';
-  if (hour < 18) return 'Boa tarde';
-  return 'Boa noite';
-}
-
-function daysUntil(dateStr: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(dateStr + 'T00:00:00');
-  return Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function dueLabel(days: number): string {
-  if (days > 1) return `Vence em ${days} dias`;
-  if (days === 1) return 'Vence amanhã';
-  if (days === 0) return 'Vence hoje';
-  if (days === -1) return 'Venceu ontem';
-  return `Venceu há ${Math.abs(days)} dias`;
-}
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-function formatDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-');
-  return `${day}/${month}/${year}`;
-}
-
-function SummaryRow({ icon, color, text }: { icon: IconName; color: string; text: string }) {
-  return (
-    <View style={styles.summaryRow}>
-      <Ionicons name={icon} size={18} color={color} />
-      <Text style={styles.summaryText}>{text}</Text>
-    </View>
-  );
-}
+const CHART_HEIGHT = 130;
 
 export default function HomeScreen() {
   const user = useAuthStore((s) => s.user);
-  const firstName = user?.name?.split(' ')[0] ?? '';
-  const selectedUnit = useUnitStore((s) => s.selectedUnit);
-  const readIds = useNoticeStore((s) => s.readIds);
-
-  const unitInvoices = selectedUnit
-    ? mockInvoices.filter((inv) => inv.unitId === selectedUnit.id)
-    : mockInvoices;
-
-  const nextInvoice =
-    unitInvoices.find((inv) => inv.status === 'overdue') ??
-    unitInvoices.find((inv) => inv.status === 'upcoming') ??
-    unitInvoices.find((inv) => inv.status === 'pending') ??
-    null;
-  const dueSoonInvoice = getNextDueSoonInvoice(unitInvoices);
-  const unitNotices = selectedUnit
-    ? mockNotices.filter((n) => n.unitId === selectedUnit.id)
-    : mockNotices;
-  const urgentNotice =
-    unitNotices.find((n) => !n.read && n.type === 'charge') ??
-    unitNotices.find((n) => !n.read);
-
-  const pendingCount = unitInvoices.filter((inv) => inv.status === 'pending').length;
-  const overdueCount = unitInvoices.filter((inv) => inv.status === 'overdue').length;
-  const unreadCount = noticeService
-    .listForUnit(selectedUnit?.id)
-    .filter((n) => !readIds.includes(n.id)).length;
-  const allClear = overdueCount === 0 && pendingCount === 0 && unreadCount === 0;
-
-  const daysLeft = nextInvoice ? daysUntil(nextInvoice.dueDate) : null;
-  const isOverdue = nextInvoice?.status === 'overdue';
+  const firstName = user?.name?.split(' ')[0] ?? 'João';
+  const units = useUnitStore((s) => s.units);
+  const activeCount = units.length || 1;
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Image
-          source={require('@/assets/images/logo-em-conta.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.greeting}>{getGreeting()},</Text>
-        <Text style={styles.userName}>{firstName ? `${firstName}!` : 'bem-vindo!'}</Text>
-        <Text style={styles.headerSub}>Veja o resumo da sua conta</Text>
-      </View>
+      {/* 1. Header verde */}
+      <GradientHeader variant="home" style={styles.headerRow}>
+        <View>
+          <Text style={styles.greeting}>Olá,</Text>
+          <Text style={styles.userName}>{firstName} 👋</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.bellButton}
+          onPress={() => router.push('/(tabs)/notices' as any)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="notifications-outline" size={24} color={colors.white} />
+          <View style={styles.bellDot} />
+        </TouchableOpacity>
+      </GradientHeader>
 
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {selectedUnit && (
-          <TouchableOpacity
-            style={styles.unitCard}
-            onPress={() => router.push('/units' as any)}
-            activeOpacity={0.8}
-          >
-            <View style={styles.unitIconWrap}>
-              <Ionicons name="home" size={22} color={colors.primary} />
-            </View>
-            <View style={styles.unitInfo}>
-              <Text style={styles.unitLabel}>Unidade ativa</Text>
-              <Text style={styles.activeUnitName} numberOfLines={1}>{selectedUnit.name}</Text>
-            </View>
-            <View style={styles.unitSwitch}>
-              <Text style={styles.unitSwitchText}>Trocar</Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.primaryDark} />
-            </View>
-          </TouchableOpacity>
-        )}
+        {/* 2. Card de economia */}
+        <Card style={styles.savingsCard}>
+          <View style={styles.savingsHeader}>
+            <Text style={styles.leafEmoji}>🌱</Text>
+            <Text style={styles.savingsLabel}>Você economizou este mês</Text>
+          </View>
+          <Text style={styles.savingsValue}>{MOCK.savingsMonth}</Text>
 
-        {nextInvoice && (
-          <Card style={[styles.invoiceCard, isOverdue && styles.invoiceCardOverdue]}>
-            <View style={styles.cardLabelRow}>
-              <Text style={styles.cardLabel}>
-                {CARD_LABEL[nextInvoice.status] ?? 'PRÓXIMA FATURA'}
-              </Text>
-              <Badge
-                label={STATUS_LABEL[nextInvoice.status] ?? nextInvoice.status}
-                color={isOverdue ? colors.error : colors.orangeDark}
-                backgroundColor={isOverdue ? colors.errorBg : colors.orangeBg}
-              />
+          <View style={styles.miniRow}>
+            <View style={styles.miniCard}>
+              <Text style={styles.miniLabel}>Total economizado</Text>
+              <Text style={styles.miniValue}>{MOCK.savingsTotal}</Text>
             </View>
-            <Text style={styles.unitName}>{nextInvoice.unitName}</Text>
-            <Text style={[styles.invoiceAmount, isOverdue && styles.invoiceAmountOverdue]}>
-              {formatCurrency(nextInvoice.amount)}
-            </Text>
-            {daysLeft !== null && (
-              <Text style={[styles.invoiceDue, isOverdue && styles.invoiceDueOverdue]}>
-                {dueLabel(daysLeft)} · {formatDate(nextInvoice.dueDate)}
-              </Text>
-            )}
-            <TouchableOpacity
-              style={styles.cardLink}
-              onPress={() => router.push('/(tabs)/invoices' as any)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.cardLinkText, isOverdue && styles.cardLinkTextOverdue]}>
-                Ver fatura
-              </Text>
-              <Ionicons
-                name="arrow-forward"
-                size={16}
-                color={isOverdue ? colors.error : colors.primary}
-              />
-            </TouchableOpacity>
-          </Card>
-        )}
-
-        {dueSoonInvoice ? (
-          <NoticeCard
-            type="due_soon"
-            title="Vencimento próximo"
-            message={getDueSoonMessage(dueSoonInvoice)}
-            date={`Vencimento em ${formatDate(dueSoonInvoice.dueDate)}`}
-            unitName={dueSoonInvoice.unitName}
-            highlighted
-            actionLabel="Ver fatura"
-            onPress={() => router.push(`/invoice/${dueSoonInvoice.id}` as any)}
-          />
-        ) : (
-          urgentNotice && (
-            <Card style={styles.noticeCard}>
-              <View style={styles.noticeHeader}>
-                <View style={styles.noticeIconWrap}>
-                  <Ionicons name="alert-circle" size={20} color={colors.orange} />
-                </View>
-                <Text style={styles.noticeHeaderText}>Aviso importante</Text>
-                <Badge label="Novo" color={colors.orangeDark} backgroundColor={colors.orangeBg} />
-              </View>
-              <Text style={styles.noticeTitle}>{urgentNotice.title}</Text>
-              <Text style={styles.noticeBody} numberOfLines={3}>
-                {urgentNotice.message}
-              </Text>
-              <TouchableOpacity
-                style={styles.cardLink}
-                onPress={() => router.push('/(tabs)/notices' as any)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.cardLinkText, { color: colors.orange }]}>Ver avisos</Text>
-                <Ionicons name="arrow-forward" size={16} color={colors.orange} />
-              </TouchableOpacity>
-            </Card>
-          )
-        )}
-
-        <Card>
-          <Text style={styles.sectionTitle}>Status da conta</Text>
-          <View style={styles.summaryList}>
-            {allClear ? (
-              <SummaryRow
-                icon="checkmark-circle"
-                color={colors.primary}
-                text="Tudo certo por enquanto"
-              />
-            ) : (
-              <>
-                {overdueCount > 0 && (
-                  <SummaryRow
-                    icon="close-circle"
-                    color={colors.error}
-                    text={`${overdueCount} fatura${overdueCount > 1 ? 's' : ''} vencida${overdueCount > 1 ? 's' : ''}`}
-                  />
-                )}
-                {pendingCount > 0 && (
-                  <SummaryRow
-                    icon="time-outline"
-                    color={colors.orange}
-                    text={`${pendingCount} fatura${pendingCount > 1 ? 's' : ''} em aberto`}
-                  />
-                )}
-                {unreadCount > 0 && (
-                  <SummaryRow
-                    icon="notifications-outline"
-                    color={colors.orange}
-                    text={`${unreadCount} aviso${unreadCount > 1 ? 's' : ''} não lido${unreadCount > 1 ? 's' : ''}`}
-                  />
-                )}
-              </>
-            )}
+            <View style={styles.miniCard}>
+              <Text style={styles.miniLabel}>Consumo do mês</Text>
+              <Text style={styles.miniValue}>{MOCK.consumption}</Text>
+            </View>
           </View>
         </Card>
 
-        <View>
-          <Text style={styles.sectionTitle}>Acesso rápido</Text>
-          <View style={styles.shortcutsGrid}>
-            {SHORTCUTS.map((s) => (
-              <TouchableOpacity
-                key={s.label}
-                style={styles.shortcutBtn}
-                onPress={() => router.push(s.route as any)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.shortcutIcon, { backgroundColor: s.bg }]}>
-                  <Ionicons name={s.icon} size={26} color={s.iconColor} />
+        {/* 3. Card de próxima cobrança */}
+        <Card style={styles.chargeCard}>
+          <View style={styles.chargeTop}>
+            <View style={styles.calendarIcon}>
+              <Ionicons name="calendar-outline" size={26} color={colors.white} />
+            </View>
+            <View style={styles.chargeInfo}>
+              <Text style={styles.chargeTitle}>
+                Sua próxima cobrança vence em{' '}
+                <Text style={styles.chargeDays}>{MOCK.nextChargeDays} dias</Text>
+              </Text>
+              <Text style={styles.chargeSub}>
+                {MOCK.nextChargeAmount} · vence {MOCK.nextChargeDate}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.chargeButton}
+            onPress={() => router.push('/payment/jun-2026' as any)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.chargeButtonText}>Ver pagamento</Text>
+            <Ionicons name="arrow-forward" size={18} color={colors.white} />
+          </TouchableOpacity>
+        </Card>
+
+        {/* 4. Card de gráfico */}
+        <Card>
+          <Text style={styles.chartTitle}>Sua economia mês a mês</Text>
+          <Text style={styles.chartDesc}>
+            O verde mostra quanto você paga com o Em Conta.
+          </Text>
+
+          <View style={styles.chart}>
+            {CHART.map((item) => (
+              <View key={item.month} style={styles.chartCol}>
+                <View style={styles.chartBars}>
+                  <View
+                    style={[
+                      styles.bar,
+                      styles.barWithout,
+                      { height: (item.without / 100) * CHART_HEIGHT },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.bar,
+                      styles.barWith,
+                      { height: (item.with / 100) * CHART_HEIGHT },
+                    ]}
+                  />
                 </View>
-                <Text style={styles.shortcutLabel}>{s.label}</Text>
-              </TouchableOpacity>
+                <Text style={styles.chartMonth}>{item.month}</Text>
+              </View>
             ))}
           </View>
+
+          <View style={styles.legend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: colors.border }]} />
+              <Text style={styles.legendText}>Sem Em Conta</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
+              <Text style={styles.legendText}>Com Em Conta</Text>
+            </View>
+          </View>
+        </Card>
+
+        {/* 5. Card energia limpa */}
+        <View style={styles.cleanCard}>
+          <Image
+            source={require('@/assets/images/mascote-heroi.png')}
+            style={styles.cleanMascot}
+            resizeMode="contain"
+          />
+          <View style={styles.cleanInfo}>
+            <Text style={styles.cleanTitle}>Energia limpa 🌎</Text>
+            <Text style={styles.cleanText}>
+              Sua energia ajudou a evitar {MOCK.co2Avoided} de CO₂ este mês.
+            </Text>
+          </View>
         </View>
+
+        {/* 6. Card minhas unidades */}
+        <TouchableOpacity
+          style={styles.unitsCard}
+          onPress={() => router.push('/units' as any)}
+          activeOpacity={0.85}
+        >
+          <View style={styles.unitsIcon}>
+            <Ionicons name="home" size={22} color={colors.primary} />
+          </View>
+          <View style={styles.unitsInfo}>
+            <Text style={styles.unitsTitle}>Minhas unidades</Text>
+            <Text style={styles.unitsSub}>
+              {activeCount} unidade{activeCount > 1 ? 's' : ''} ativa
+              {activeCount > 1 ? 's' : ''}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -295,19 +201,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    backgroundColor: colors.primaryDark,
-    paddingTop: 60,
-    paddingBottom: spacing.xxl,
-    paddingHorizontal: spacing.xl,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-  logo: {
-    width: 110,
-    height: 34,
-    marginBottom: spacing.base,
-    opacity: 0.9,
+  // 1. Header
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   greeting: {
     fontFamily: fontFamily.bold,
@@ -318,38 +216,242 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.black,
     fontSize: fontSize.h1,
     color: colors.white,
-    lineHeight: 38,
+    lineHeight: 34,
+    marginTop: 2,
   },
-  headerSub: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.sm,
-    color: colors.greenAccentLight,
-    opacity: 0.8,
-    marginTop: 4,
+  bellButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bellDot: {
+    position: 'absolute',
+    top: 9,
+    right: 10,
+    width: 9,
+    height: 9,
+    borderRadius: radius.full,
+    backgroundColor: colors.error,
   },
   content: {
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: 40,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
     gap: spacing.base,
   },
-  // Active unit card
-  unitCard: {
+  // 2. Economia
+  savingsCard: {
+    gap: spacing.md,
+  },
+  savingsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  leafEmoji: {
+    fontSize: 22,
+  },
+  savingsLabel: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.xl,
+    color: colors.textMedium,
+  },
+  savingsValue: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.hero,
+    color: colors.primary,
+    lineHeight: 50,
+    letterSpacing: -1,
+  },
+  miniRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  miniCard: {
+    flex: 1,
+    backgroundColor: colors.greenBgSubtle,
+    borderRadius: radius.lg,
+    padding: spacing.base,
+    gap: spacing.xs,
+  },
+  miniLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.sm,
+    color: colors.textLight,
+  },
+  miniValue: {
+    fontFamily: fontFamily.black,
+    fontSize: 21,
+    color: colors.primaryDark,
+  },
+  // 3. Cobrança
+  chargeCard: {
+    backgroundColor: colors.orangeBg,
+    borderWidth: 2,
+    borderColor: colors.orangeBorder,
+    gap: spacing.base,
+  },
+  chargeTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  calendarIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: colors.orange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chargeInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  chargeTitle: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.xl,
+    color: colors.textDark,
+    lineHeight: 23,
+  },
+  chargeDays: {
+    color: colors.orange,
+  },
+  chargeSub: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.base,
+    color: colors.textLight,
+  },
+  chargeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.orange,
+    borderRadius: 14,
+    minHeight: 50,
+    paddingVertical: spacing.base,
+  },
+  chargeButtonText: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.xl,
+    color: colors.white,
+  },
+  // 4. Gráfico
+  chartTitle: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.h3,
+    color: colors.textDark,
+  },
+  chartDesc: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.md,
+    color: colors.textLight,
+    marginTop: 4,
+    marginBottom: 18,
+  },
+  chart: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: CHART_HEIGHT,
+  },
+  chartCol: {
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  chartBars: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 3,
+    height: CHART_HEIGHT,
+  },
+  bar: {
+    width: 12,
+    borderRadius: radius.sm,
+  },
+  barWithout: {
+    backgroundColor: colors.border,
+  },
+  barWith: {
+    backgroundColor: colors.primary,
+  },
+  chartMonth: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 18,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  legendDot: {
+    width: 13,
+    height: 13,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.sm,
+    color: colors.textLight,
+  },
+  // 5. Energia limpa
+  cleanCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.base,
+    backgroundColor: colors.primaryDarker,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+  },
+  cleanMascot: {
+    width: 72,
+    height: 72,
+  },
+  cleanInfo: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  cleanTitle: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.h3,
+    color: colors.white,
+  },
+  cleanText: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.sm,
+    color: colors.greenAccentLight,
+    lineHeight: 20,
+  },
+  // 6. Minhas unidades
+  unitsCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radius.card,
     padding: spacing.base,
-    borderWidth: 1,
-    borderColor: colors.greenBorder,
     shadowColor: colors.primaryDark,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 2,
   },
-  unitIconWrap: {
+  unitsIcon: {
     width: 44,
     height: 44,
     borderRadius: radius.md,
@@ -357,176 +459,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  unitInfo: { flex: 1 },
-  unitLabel: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+  unitsInfo: {
+    flex: 1,
   },
-  activeUnitName: {
+  unitsTitle: {
     fontFamily: fontFamily.black,
     fontSize: fontSize.lg,
     color: colors.textDark,
+  },
+  unitsSub: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.sm,
+    color: colors.textMedium,
     marginTop: 2,
-  },
-  unitSwitch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  unitSwitchText: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.sm,
-    color: colors.primaryDark,
-  },
-  // Invoice card
-  invoiceCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: colors.orange,
-    gap: spacing.sm,
-  },
-  invoiceCardOverdue: {
-    borderLeftColor: colors.error,
-  },
-  cardLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cardLabel: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  unitName: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.base,
-    color: colors.textMedium,
-  },
-  invoiceAmount: {
-    fontFamily: fontFamily.black,
-    fontSize: fontSize.h1,
-    color: colors.textDark,
-    lineHeight: 38,
-  },
-  invoiceAmountOverdue: {
-    color: colors.error,
-  },
-  invoiceDue: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.sm,
-    color: colors.textLight,
-  },
-  invoiceDueOverdue: {
-    color: colors.error,
-  },
-  cardLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-    gap: 4,
-    paddingVertical: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  cardLinkText: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.base,
-    color: colors.primary,
-  },
-  cardLinkTextOverdue: {
-    color: colors.error,
-  },
-  // Notice card
-  noticeCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: colors.orange,
-    gap: spacing.sm,
-  },
-  noticeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  noticeIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.orangeBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noticeHeaderText: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.base,
-    color: colors.orangeDark,
-    flex: 1,
-  },
-  noticeTitle: {
-    fontFamily: fontFamily.black,
-    fontSize: fontSize.xl,
-    color: colors.textDark,
-  },
-  noticeBody: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.base,
-    color: colors.textMedium,
-    lineHeight: 22,
-  },
-  // Summary card
-  sectionTitle: {
-    fontFamily: fontFamily.black,
-    fontSize: fontSize.xxl,
-    color: colors.textDark,
-    marginBottom: spacing.md,
-  },
-  summaryList: {
-    gap: spacing.md,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  summaryText: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.base,
-    color: colors.textMedium,
-    flex: 1,
-  },
-  // Shortcuts
-  shortcutsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  shortcutBtn: {
-    width: '47%',
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.base,
-    alignItems: 'center',
-    gap: spacing.sm,
-    shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  shortcutIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.xxl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shortcutLabel: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.base,
-    color: colors.textDark,
   },
 });

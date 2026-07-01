@@ -1,117 +1,95 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Alert,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { suporteMock } from '@/mocks/perfil.mock';
+import { GradientHeader } from '@/components/ui/GradientHeader';
 import { colors } from '@/constants/colors';
 import { fontFamily, fontSize } from '@/constants/typography';
 import { spacing, radius } from '@/constants/spacing';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
-interface SupportItemProps {
+function ContactCard({
+  icon,
+  title,
+  subtitle,
+  onPress,
+}: {
   icon: IconName;
   title: string;
   subtitle: string;
   onPress: () => void;
-}
-
-function SupportItem({ icon, title, subtitle, onPress }: SupportItemProps) {
+}) {
   return (
-    <TouchableOpacity style={styles.item} onPress={onPress} activeOpacity={0.8}>
-      <View style={styles.itemIcon}>
-        <Ionicons name={icon} size={26} color={colors.primary} />
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+      <View style={styles.cardIcon}>
+        <Ionicons name={icon} size={24} color={colors.primary} />
       </View>
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemTitle}>{title}</Text>
-        <Text style={styles.itemSub}>{subtitle}</Text>
+      <View style={styles.cardInfo}>
+        <Text style={styles.cardTitle}>{title}</Text>
+        <Text style={styles.cardSub}>{subtitle}</Text>
       </View>
       <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
     </TouchableOpacity>
   );
 }
 
-const FAQ = [
-  'Como funciona o desconto na conta de luz?',
-  'Quando minha fatura fica disponível?',
-  'Como pagar via Pix?',
-  'O que é energia renovável?',
-];
-
 export default function SupportScreen() {
-  function handleTalk() {
-    Alert.alert('Falar com atendimento', 'Em breve você poderá falar com o atendimento por aqui.');
+  function handleWhatsApp() {
+    Alert.alert('WhatsApp', 'Você será direcionado ao nosso WhatsApp.');
   }
 
-  function handleSendQuestion() {
-    Alert.alert('Enviar dúvida', 'Em breve você poderá enviar sua dúvida por aqui.');
-  }
-
-  function handleFaq(question: string) {
-    Alert.alert(question, 'Em breve a resposta completa estará disponível por aqui.');
+  function handlePhone() {
+    Alert.alert('Telefone', `Ligar para ${suporteMock.phone}`);
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
+      {/* Header verde */}
+      <GradientHeader variant="detail">
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="arrow-back" size={18} color={colors.white} />
+          <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Suporte</Text>
-        <View style={{ width: 40 }} />
-      </View>
+        <Text style={styles.headerTitle}>Falar com suporte</Text>
+        <Text style={styles.headerSub}>Estamos aqui para te ajudar</Text>
+      </GradientHeader>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.intro}>Precisa de ajuda? Escolha uma opção abaixo.</Text>
+        <Image
+          source={require('@/assets/images/mascote-aceno.png')}
+          style={styles.mascot}
+          resizeMode="contain"
+        />
 
-        <View style={styles.card}>
-          <SupportItem
-            icon="chatbubble-ellipses-outline"
-            title="Falar com atendimento"
-            subtitle="Tire suas dúvidas com a nossa equipe"
-            onPress={handleTalk}
-          />
-          <View style={styles.sep} />
-          <SupportItem
-            icon="mail-outline"
-            title="Enviar dúvida"
-            subtitle="Mande sua mensagem para a gente"
-            onPress={handleSendQuestion}
-          />
-          <View style={styles.sep} />
-          <SupportItem
-            icon="help-circle-outline"
-            title="Ver dúvidas frequentes"
-            subtitle="Respostas para as perguntas mais comuns"
-            onPress={() => handleFaq(FAQ[0])}
-          />
-        </View>
+        <ContactCard
+          icon="logo-whatsapp"
+          title="WhatsApp"
+          subtitle={suporteMock.whatsappSubtitle}
+          onPress={handleWhatsApp}
+        />
+        <ContactCard
+          icon="call-outline"
+          title="Telefone"
+          subtitle={suporteMock.phone}
+          onPress={handlePhone}
+        />
 
-        {/* Canal de atendimento */}
-        <View style={styles.contactCard}>
-          <View style={styles.contactHeader}>
-            <Ionicons name="headset-outline" size={20} color={colors.primary} />
-            <Text style={styles.contactTitle}>Canal de atendimento</Text>
-          </View>
-          <Text style={styles.contactText}>
-            Atendimento de segunda a sexta, das 8h às 18h.
-          </Text>
-          <Text style={styles.contactText}>
-            Em breve novos canais estarão disponíveis direto pelo app.
-          </Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>Dúvidas frequentes</Text>
-
-        <View style={styles.card}>
-          {FAQ.map((q, i, arr) => (
-            <React.Fragment key={i}>
-              <TouchableOpacity style={styles.faqItem} activeOpacity={0.7} onPress={() => handleFaq(q)}>
-                <Text style={styles.faqText}>{q}</Text>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-              </TouchableOpacity>
-              {i < arr.length - 1 && <View style={styles.sep} />}
-            </React.Fragment>
-          ))}
+        <View style={styles.infoCard}>
+          <Text style={styles.infoText}>{suporteMock.hours}</Text>
         </View>
       </ScrollView>
     </View>
@@ -120,116 +98,90 @@ export default function SupportScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: {
+  backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.primaryDark,
-    paddingTop: 56,
-    paddingBottom: spacing.base,
-    paddingHorizontal: spacing.base,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    alignSelf: 'flex-start',
+    gap: 4,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: radius.full,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginBottom: spacing.base,
+  },
+  backText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.sm,
+    color: colors.white,
   },
   headerTitle: {
     fontFamily: fontFamily.black,
-    fontSize: fontSize.xl,
+    fontSize: fontSize.h1,
     color: colors.white,
   },
-  content: { padding: spacing.base, gap: spacing.base, paddingBottom: 40 },
-  intro: {
+  headerSub: {
     fontFamily: fontFamily.bold,
-    fontSize: fontSize.lg,
-    color: colors.textMedium,
-    lineHeight: 24,
+    fontSize: fontSize.base,
+    color: colors.greenAccentLight,
+    opacity: 0.9,
+    marginTop: 4,
   },
-  sectionTitle: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginTop: spacing.sm,
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: 40,
+    gap: spacing.base,
+  },
+  mascot: {
+    width: 120,
+    height: 120,
+    alignSelf: 'center',
+    marginBottom: spacing.sm,
   },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.07,
-    shadowRadius: 14,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  item: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
     padding: spacing.base,
+    shadowColor: colors.primaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  itemIcon: {
+  cardIcon: {
     width: 48,
     height: 48,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     backgroundColor: colors.greenBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  itemInfo: { flex: 1 },
-  itemTitle: {
-    fontFamily: fontFamily.extraBold,
+  cardInfo: { flex: 1 },
+  cardTitle: {
+    fontFamily: fontFamily.black,
     fontSize: fontSize.lg,
     color: colors.textDark,
   },
-  itemSub: {
-    fontFamily: fontFamily.semiBold,
+  cardSub: {
+    fontFamily: fontFamily.bold,
     fontSize: fontSize.sm,
-    color: colors.textLight,
+    color: colors.textMedium,
     marginTop: 2,
   },
-  sep: { height: 1, backgroundColor: colors.border, marginLeft: 64 },
-  contactCard: {
-    backgroundColor: colors.greenBgSubtle,
+  infoCard: {
+    backgroundColor: colors.greenBg,
     borderRadius: radius.card,
-    padding: spacing.base,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.greenBorder,
+    padding: spacing.lg,
+    marginTop: spacing.xs,
   },
-  contactHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: 2,
-  },
-  contactTitle: {
+  infoText: {
     fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.lg,
-    color: colors.primaryDark,
-  },
-  contactText: {
-    fontFamily: fontFamily.semiBold,
     fontSize: fontSize.base,
-    color: colors.textMedium,
-    lineHeight: 21,
-  },
-  faqItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.base,
-  },
-  faqText: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.lg,
-    color: colors.textDark,
-    flex: 1,
+    color: colors.primaryDark,
+    textAlign: 'center',
     lineHeight: 22,
   },
 });

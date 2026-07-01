@@ -1,311 +1,239 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Invoice } from '@/types/invoice';
-import { invoiceService } from '@/services/invoiceService';
-import { InvoiceStatusBadge } from '@/components/invoices/InvoiceStatusBadge';
-import { Loading } from '@/components/ui/Loading';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { formatCurrency } from '@/utils/formatCurrency';
-import { formatDate, formatMonth, daysUntil } from '@/utils/formatDate';
+import { getFaturaById } from '@/mocks/faturas.mock';
+import { GradientHeader } from '@/components/ui/GradientHeader';
+import { BottomTabBarMock } from '@/components/navigation/BottomTabBarMock';
 import { colors } from '@/constants/colors';
 import { fontFamily, fontSize } from '@/constants/typography';
 import { spacing, radius } from '@/constants/spacing';
 
-function getDueText(invoice: Invoice): string {
-  if (invoice.status === 'paid') return `Pago em ${formatDate(invoice.dueDate)}`;
-  const days = daysUntil(invoice.dueDate);
-  if (days > 1) return `Vence em ${days} dias`;
-  if (days === 1) return 'Vence amanhã';
-  if (days === 0) return 'Vence hoje';
-  if (days === -1) return 'Venceu ontem';
-  return `Venceu há ${Math.abs(days)} dias`;
-}
-
-function getDueColor(invoice: Invoice): string {
-  if (invoice.status === 'paid') return colors.textLight;
-  if (invoice.status === 'overdue') return colors.error;
-  const days = daysUntil(invoice.dueDate);
-  if (days <= 5) return colors.orange;
-  return colors.textLight;
+function DetailRow({
+  label,
+  value,
+  highlight,
+  last,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <>
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        <Text style={[styles.rowValue, highlight && styles.rowValueHighlight]}>
+          {value}
+        </Text>
+      </View>
+      {!last && <View style={styles.separator} />}
+    </>
+  );
 }
 
 export default function InvoiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
-  useEffect(() => {
-    invoiceService
-      .getById(id)
-      .then(setInvoice)
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  if (loading) return <Loading message="Carregando fatura..." />;
-
-  if (notFound || !invoice) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color={colors.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Detalhe da Fatura</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <View style={styles.notFound}>
-          <View style={styles.notFoundIconWrap}>
-            <Ionicons name="document-outline" size={40} color={colors.textMuted} />
-          </View>
-          <Text style={styles.notFoundTitle}>Fatura não encontrada</Text>
-          <Text style={styles.notFoundSub}>
-            Não conseguimos encontrar essa fatura. Volte para a lista e tente novamente.
-          </Text>
-          <Button
-            label="Voltar para faturas"
-            onPress={() => router.replace('/(tabs)/invoices' as any)}
-            variant="secondary"
-            style={{ marginTop: spacing.md }}
-          />
-        </View>
-      </View>
-    );
-  }
-
-  const isOverdue = invoice.status === 'overdue';
-  const canPay = invoice.status !== 'paid';
+  const fatura = getFaturaById(id);
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
+      {/* Header verde */}
+      <GradientHeader variant="detail">
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="arrow-back" size={18} color={colors.white} />
+          <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalhe da Fatura</Text>
-        <View style={{ width: 40 }} />
-      </View>
+        <Text style={styles.headerLabel}>Fatura de</Text>
+        <Text style={styles.headerMonth}>{fatura.month}</Text>
+      </GradientHeader>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Card style={[styles.statusCard, isOverdue && styles.statusCardOverdue]}>
-          <View style={styles.statusRow}>
-            <View>
-              <Text style={styles.month}>{formatMonth(invoice.referenceMonth)}</Text>
-              <Text style={styles.unitName}>{invoice.unitName}</Text>
-            </View>
-            <InvoiceStatusBadge status={invoice.status} />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Cards superiores */}
+        <View style={styles.topCards}>
+          <View style={styles.topCard}>
+            <Text style={styles.topCardLabel}>Valor da conta</Text>
+            <Text style={styles.topCardValue}>{fatura.amount}</Text>
           </View>
-          <Text style={[styles.amount, isOverdue && styles.amountOverdue]}>
-            {formatCurrency(invoice.amount)}
-          </Text>
-          <Text style={[styles.due, { color: getDueColor(invoice) }]}>
-            {getDueText(invoice)}
-          </Text>
-        </Card>
-
-        <Card style={styles.detailsCard}>
-          <Text style={styles.sectionTitle}>Detalhes</Text>
-
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Unidade</Text>
-            <Text style={styles.rowValue}>{invoice.unitName}</Text>
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Referência</Text>
-            <Text style={styles.rowValue}>{formatMonth(invoice.referenceMonth)}</Text>
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Vencimento</Text>
-            <Text style={[styles.rowValue, isOverdue && { color: colors.error }]}>
-              {formatDate(invoice.dueDate)}
+          <View style={[styles.topCard, styles.topCardGreen]}>
+            <Text style={styles.topCardLabel}>Economia do mês</Text>
+            <Text style={[styles.topCardValue, styles.topCardValueGreen]}>
+              {fatura.savings}
             </Text>
           </View>
-          <View style={styles.separator} />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Consumo</Text>
-            <Text style={styles.rowValue}>{invoice.consumption} kWh</Text>
-          </View>
-          <View style={styles.separator} />
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Economia gerada</Text>
-            <Text style={[styles.rowValue, { color: colors.primary }]}>
-              {formatCurrency(invoice.savings)}
-            </Text>
-          </View>
-        </Card>
+        </View>
 
-        {canPay && (
-          <Button
-            label="Pagar agora"
-            onPress={() =>
-              router.push(
-                `/invoice/payment?invoiceId=${invoice.id}&amount=${invoice.amount}` as any,
-              )
-            }
-            style={{ marginTop: spacing.sm }}
+        {/* Card de detalhes */}
+        <View style={styles.detailsCard}>
+          <DetailRow label="Unidade" value={fatura.unit} />
+          <DetailRow label="Nº da instalação" value={fatura.installation} />
+          <DetailRow label="Distribuidora" value={fatura.distributor} />
+          <DetailRow label="Vencimento" value={fatura.dueDate} />
+          <DetailRow label="Energia usada" value={fatura.energyUsed} />
+          <DetailRow label="Energia limpa usada" value={fatura.cleanEnergyUsed} />
+          <DetailRow
+            label="Créditos guardados"
+            value={fatura.storedCredits}
+            highlight
+            last
           />
-        )}
+        </View>
 
-        {invoice.status === 'paid' && (
-          <View style={styles.paidBanner}>
-            <Ionicons name="checkmark-circle" size={28} color={colors.primary} />
-            <Text style={styles.paidText}>Esta fatura já foi paga. Obrigado!</Text>
-          </View>
-        )}
+        {/* Botão baixar fatura */}
+        <TouchableOpacity
+          style={styles.downloadButton}
+          onPress={() =>
+            Alert.alert('Baixar fatura', 'Sua fatura será baixada em instantes.')
+          }
+          activeOpacity={0.85}
+        >
+          <Ionicons name="download-outline" size={20} color={colors.white} />
+          <Text style={styles.downloadButtonText}>Baixar fatura</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      <BottomTabBarMock active="invoices" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: {
+  backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.primaryDark,
-    paddingTop: 56,
-    paddingBottom: spacing.base,
-    paddingHorizontal: spacing.base,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    alignSelf: 'flex-start',
+    gap: 4,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: radius.full,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginBottom: spacing.base,
   },
-  headerTitle: {
-    fontFamily: fontFamily.black,
-    fontSize: fontSize.xl,
+  backText: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: fontSize.sm,
     color: colors.white,
   },
-  content: { padding: spacing.base, gap: spacing.md, paddingBottom: 40 },
-
-  // Not found
-  notFound: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xxxl,
+  headerLabel: {
+    fontFamily: fontFamily.bold,
+    fontSize: fontSize.base,
+    color: colors.greenAccentLight,
+  },
+  headerMonth: {
+    fontFamily: fontFamily.black,
+    fontSize: fontSize.h1,
+    color: colors.white,
+    lineHeight: 36,
+  },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.base,
+  },
+  // Top cards
+  topCards: {
+    flexDirection: 'row',
     gap: spacing.md,
   },
-  notFoundIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.surfaceLight,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+  topCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    gap: spacing.xs,
+    shadowColor: colors.primaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  notFoundTitle: {
-    fontFamily: fontFamily.black,
-    fontSize: fontSize.h3,
-    color: colors.textDark,
-    textAlign: 'center',
-    marginTop: spacing.sm,
+  topCardGreen: {
+    backgroundColor: colors.greenBg,
   },
-  notFoundSub: {
+  topCardLabel: {
     fontFamily: fontFamily.bold,
-    fontSize: fontSize.lg,
+    fontSize: fontSize.sm,
     color: colors.textMedium,
-    textAlign: 'center',
-    lineHeight: 24,
   },
-
-  // Status card
-  statusCard: {},
-  statusCardOverdue: {
-    borderWidth: 1.5,
-    borderColor: colors.error,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  month: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.base,
-    color: colors.textLight,
-  },
-  unitName: {
-    fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.xl,
-    color: colors.textDark,
-    marginTop: 2,
-  },
-  amount: {
+  topCardValue: {
     fontFamily: fontFamily.black,
-    fontSize: 40,
+    fontSize: fontSize.h2,
     color: colors.textDark,
-    letterSpacing: -1,
   },
-  amountOverdue: {
-    color: colors.error,
+  topCardValueGreen: {
+    color: colors.primary,
   },
-  due: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.base,
-    marginTop: 4,
-  },
-
   // Details card
-  detailsCard: { gap: 0 },
-  sectionTitle: {
-    fontFamily: fontFamily.black,
-    fontSize: fontSize.xl,
-    color: colors.textDark,
-    marginBottom: spacing.md,
+  detailsCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+    shadowColor: colors.primaryDark,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.base,
+    gap: spacing.base,
   },
   rowLabel: {
     fontFamily: fontFamily.bold,
-    fontSize: fontSize.lg,
+    fontSize: fontSize.base,
     color: colors.textMedium,
   },
   rowValue: {
     fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.lg,
+    fontSize: fontSize.base,
     color: colors.textDark,
+    textAlign: 'right',
+    flexShrink: 1,
+  },
+  rowValueHighlight: {
+    color: colors.primary,
   },
   separator: { height: 1, backgroundColor: colors.border },
-
-  // Paid banner
-  paidBanner: {
+  // Download button
+  downloadButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.successBg,
-    borderRadius: radius.xl,
-    padding: spacing.base,
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radius.button,
+    paddingVertical: spacing.base,
     marginTop: spacing.sm,
+    shadowColor: colors.primaryDark,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  paidText: {
+  downloadButtonText: {
     fontFamily: fontFamily.extraBold,
-    fontSize: fontSize.xl,
-    color: colors.primaryDark,
-    flex: 1,
+    fontSize: fontSize.lg,
+    color: colors.white,
   },
 });

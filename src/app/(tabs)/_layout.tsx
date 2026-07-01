@@ -3,8 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useUnitStore } from '@/stores/unitStore';
-import { useNoticeStore } from '@/stores/noticeStore';
-import { noticeService } from '@/services/noticeService';
+import { useAvisoStore } from '@/stores/avisoStore';
+import { mockAvisos } from '@/mocks/avisos.mock';
 import { colors } from '@/constants/colors';
 import { fontFamily } from '@/constants/typography';
 
@@ -30,25 +30,14 @@ function TabIcon({ name, focused }: TabIconProps) {
 export default function TabsLayout() {
   const hydrated = useUnitStore((s) => s.hydrated);
   const loadUnits = useUnitStore((s) => s.loadUnits);
-  const selectedUnit = useUnitStore((s) => s.selectedUnit);
 
-  const noticesHydrated = useNoticeStore((s) => s.hydrated);
-  const loadReadNotices = useNoticeStore((s) => s.loadReadNotices);
-  const readIds = useNoticeStore((s) => s.readIds);
+  const readIds = useAvisoStore((s) => s.readIds);
 
   useEffect(() => {
     if (!hydrated) loadUnits();
   }, [hydrated]);
 
-  useEffect(() => {
-    if (!noticesHydrated) loadReadNotices();
-  }, [noticesHydrated]);
-
-  const unreadCount = noticesHydrated
-    ? noticeService
-        .listForUnit(selectedUnit?.id)
-        .filter((n) => !readIds.includes(n.id)).length
-    : 0;
+  const unreadCount = mockAvisos.filter((a) => !readIds.includes(a.id)).length;
 
   return (
     <Tabs
@@ -78,6 +67,18 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused }) => (
             <TabIcon
               name={focused ? 'document-text' : 'document-text-outline'}
+              focused={focused}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="payments"
+        options={{
+          title: 'Pagamentos',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name={focused ? 'card' : 'card-outline'}
               focused={focused}
             />
           ),

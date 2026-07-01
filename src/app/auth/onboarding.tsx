@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.xl,
-    paddingTop: 56,
+    paddingTop: 48,
     paddingBottom: spacing.base,
   },
   logo: {

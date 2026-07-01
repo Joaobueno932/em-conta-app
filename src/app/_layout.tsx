@@ -10,6 +10,7 @@ import {
   Nunito_900Black,
 } from '@expo-google-fonts/nunito';
 import * as SplashScreen from 'expo-splash-screen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 
 SplashScreen.preventAutoHideAsync();
@@ -30,8 +31,8 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <>
-      <StatusBar style="auto" />
+    <SafeAreaProvider>
+      <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="auth/login" />
@@ -39,10 +40,12 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="invoice/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="invoice/payment" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="notices/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="payment/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="units/index" options={{ presentation: 'card' }} />
         <Stack.Screen name="support/index" options={{ presentation: 'card' }} />
+        <Stack.Screen name="profile/edit" options={{ presentation: 'card' }} />
+        <Stack.Screen name="profile/password" options={{ presentation: 'card' }} />
       </Stack>
-    </>
+    </SafeAreaProvider>
   );
 }
