@@ -32,7 +32,7 @@ function HistoryCard({ item }: { item: PaymentHistoryItem }) {
         <Text style={styles.historyPaid}>{item.paidText}</Text>
       </View>
       <View style={styles.historyRight}>
-        <Text style={styles.historyAmount}>{item.amount}</Text>
+        <Text style={styles.historyAmount} numberOfLines={1}>{item.amount}</Text>
         <Text style={styles.historyStatus}>{item.statusLabel}</Text>
       </View>
     </View>
@@ -85,7 +85,9 @@ export default function PaymentsScreen() {
             </View>
           </View>
 
-          <Text style={styles.chargeAmount}>{currentCharge.amount}</Text>
+          <Text style={styles.chargeAmount} numberOfLines={1} adjustsFontSizeToFit>
+            {currentCharge.amount}
+          </Text>
 
           <View style={styles.dueRow}>
             <Ionicons name="calendar-outline" size={16} color={colors.orange} />

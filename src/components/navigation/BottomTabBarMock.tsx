@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 import { fontFamily } from '@/constants/typography';
 
@@ -29,8 +30,9 @@ const ITEMS: {
  * e navega para as abas via replace.
  */
 export function BottomTabBarMock({ active }: { active: TabKey }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.tabBar}>
+    <View style={[styles.tabBar, { paddingBottom: 12 + insets.bottom }]}>
       {ITEMS.map((item) => {
         const isActive = item.key === active;
         return (
@@ -71,9 +73,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopColor: colors.border,
     borderTopWidth: 1,
-    height: 76,
     paddingTop: 6,
-    paddingBottom: 14,
   },
   tabItem: {
     flex: 1,

@@ -61,6 +61,7 @@ export default function InvoiceDetailScreen() {
       </GradientHeader>
 
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
@@ -68,11 +69,18 @@ export default function InvoiceDetailScreen() {
         <View style={styles.topCards}>
           <View style={styles.topCard}>
             <Text style={styles.topCardLabel}>Valor da conta</Text>
-            <Text style={styles.topCardValue}>{fatura.amount}</Text>
+            <Text style={styles.topCardValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {fatura.amount}
+            </Text>
           </View>
           <View style={[styles.topCard, styles.topCardGreen]}>
             <Text style={styles.topCardLabel}>Economia do mês</Text>
-            <Text style={[styles.topCardValue, styles.topCardValueGreen]}>
+            <Text
+              style={[styles.topCardValue, styles.topCardValueGreen]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               {fatura.savings}
             </Text>
           </View>
@@ -114,6 +122,7 @@ export default function InvoiceDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  scroll: { flex: 1 },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',

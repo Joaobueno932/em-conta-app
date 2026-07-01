@@ -60,13 +60,16 @@ export default function PaymentDetailScreen() {
           <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
         <Text style={styles.headerLabel}>Cobrança de {charge.month}</Text>
-        <Text style={styles.headerAmount}>{charge.amount}</Text>
+        <Text style={styles.headerAmount} numberOfLines={1} adjustsFontSizeToFit>
+          {charge.amount}
+        </Text>
         <View style={styles.headerBadge}>
           <Text style={styles.headerBadgeText}>{charge.statusLabel}</Text>
         </View>
       </GradientHeader>
 
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
@@ -112,6 +115,7 @@ export default function PaymentDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  scroll: { flex: 1 },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',

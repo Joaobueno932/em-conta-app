@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
@@ -29,6 +30,9 @@ const loginSchema = z.object({
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
+
+// Cadastro externo (abre no navegador).
+const REGISTER_URL = 'https://emconta.gdash.io/calculate-economy/KBaRscPnimx0EFU6gWnPo';
 
 export default function LoginScreen() {
   const [apiError, setApiError] = useState('');
@@ -57,8 +61,12 @@ export default function LoginScreen() {
     Alert.alert('Em breve', 'A recuperação de senha estará disponível em breve.');
   }
 
-  function handleRegister() {
-    Alert.alert('Em breve', 'O cadastro estará disponível em breve.');
+  async function handleRegister() {
+    try {
+      await Linking.openURL(REGISTER_URL);
+    } catch {
+      Alert.alert('Ops', 'Não foi possível abrir o cadastro agora. Tente novamente.');
+    }
   }
 
   return (

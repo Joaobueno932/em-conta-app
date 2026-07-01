@@ -22,11 +22,20 @@ function FaturaCard({ fatura }: { fatura: Fatura }) {
       <View style={styles.valuesRow}>
         <View style={styles.valueBlock}>
           <Text style={styles.valueLabel}>Valor da conta</Text>
-          <Text style={styles.valueAmount}>{fatura.amount}</Text>
+          <Text style={styles.valueAmount} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            {fatura.amount}
+          </Text>
         </View>
         <View style={styles.valueBlock}>
           <Text style={styles.valueLabel}>Você economizou</Text>
-          <Text style={[styles.valueAmount, styles.savings]}>{fatura.savings}</Text>
+          <Text
+            style={[styles.valueAmount, styles.savings]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            {fatura.savings}
+          </Text>
         </View>
       </View>
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   PanResponder,
+  Animated,
+  Easing,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { storageService } from '@/services/storageService';
 import { useAuthStore } from '@/stores/authStore';
@@ -36,11 +39,37 @@ const slides = [
 ];
 
 export default function OnboardingScreen() {
+  const insets = useSafeAreaInsets();
   const [current, setCurrent] = useState(0);
   const [finishing, setFinishing] = useState(false);
   const setOnboardingCompleted = useAuthStore((s) => s.setOnboardingCompleted);
   const slide = slides[current];
   const isLast = current === slides.length - 1;
+
+  // Transição suave (slide + fade) ao trocar de aviso, na direção do movimento.
+  const opacity = useRef(new Animated.Value(1)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const prevIndex = useRef(0);
+
+  useEffect(() => {
+    const dir = current >= prevIndex.current ? 1 : -1;
+    prevIndex.current = current;
+    opacity.setValue(0);
+    translateX.setValue(dir * 44);
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateX, {
+        toValue: 0,
+        duration: 320,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [current]);
 
   async function finish() {
     if (finishing) return;
@@ -74,8 +103,8 @@ export default function OnboardingScreen() {
   ).current;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.topBar}>
+    <View style={[styles.container, { paddingBottom: insets.bottom + spacing.base }]}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
         <Image
           source={require('@/assets/images/logo-em-conta.png')}
           style={styles.logo}
@@ -87,11 +116,15 @@ export default function OnboardingScreen() {
       </View>
 
       <View style={styles.content} {...swipeResponder.panHandlers}>
-        <View style={styles.imageCircle}>
-          <Image source={slide.image} style={styles.mascote} resizeMode="contain" />
-        </View>
-        <Text style={styles.title}>{slide.title}</Text>
-        <Text style={styles.desc}>{slide.desc}</Text>
+        <Animated.View
+          style={[styles.slide, { opacity, transform: [{ translateX }] }]}
+        >
+          <View style={styles.imageCircle}>
+            <Image source={slide.image} style={styles.mascote} resizeMode="contain" />
+          </View>
+          <Text style={styles.title}>{slide.title}</Text>
+          <Text style={styles.desc}>{slide.desc}</Text>
+        </Animated.View>
       </View>
 
       <View style={styles.footer}>
@@ -157,6 +190,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+  },
+  slide: {
+    width: '100%',
+    alignItems: 'center',
     gap: spacing.base,
   },
   imageCircle: {

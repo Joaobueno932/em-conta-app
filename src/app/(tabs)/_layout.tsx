@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUnitStore } from '@/stores/unitStore';
 import { useAvisoStore } from '@/stores/avisoStore';
 import { mockAvisos } from '@/mocks/avisos.mock';
@@ -28,6 +29,7 @@ function TabIcon({ name, focused }: TabIconProps) {
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   const hydrated = useUnitStore((s) => s.hydrated);
   const loadUnits = useUnitStore((s) => s.loadUnits);
 
@@ -44,7 +46,11 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarHideOnKeyboard: true,
-        tabBarStyle: styles.tabBar,
+        // Respeita a navegação do Android somando o inset inferior à barra.
+        tabBarStyle: [
+          styles.tabBar,
+          { height: 68 + insets.bottom, paddingBottom: 12 + insets.bottom },
+        ],
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: styles.tabLabel,
@@ -116,9 +122,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopColor: colors.border,
     borderTopWidth: 1,
-    height: 76,
     paddingTop: 6,
-    paddingBottom: 14,
   },
   tabItem: {
     paddingTop: 4,

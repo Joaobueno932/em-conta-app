@@ -23,6 +23,7 @@ import {
   RECADO_ICON_COLOR,
   RECADO_ICON_BG,
 } from '@/mocks/avisos.mock';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAvisoStore } from '@/stores/avisoStore';
 import { GradientHeader } from '@/components/ui/GradientHeader';
 import { colors } from '@/constants/colors';
@@ -68,6 +69,7 @@ function AvisoCard({
 const SHEET_OFFSCREEN = Dimensions.get('window').height;
 
 export default function NoticesScreen() {
+  const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<AvisoType | 'todos'>('todos');
   const [recadoOpen, setRecadoOpen] = useState(false);
   const readIds = useAvisoStore((s) => s.readIds);
@@ -197,7 +199,10 @@ export default function NoticesScreen() {
           {/* Overlay escuro: escurece direto (sem slide) e fecha ao tocar fora */}
           <Pressable style={StyleSheet.absoluteFill} onPress={closeRecado} />
           <Animated.View
-            style={[styles.sheet, { transform: [{ translateY }] }]}
+            style={[
+              styles.sheet,
+              { paddingBottom: insets.bottom + spacing.xl, transform: [{ translateY }] },
+            ]}
             {...panResponder.panHandlers}
           >
             <View style={styles.sheetHandle} />

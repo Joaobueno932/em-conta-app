@@ -75,16 +75,32 @@ export default function HomeScreen() {
             <Text style={styles.leafEmoji}>🌱</Text>
             <Text style={styles.savingsLabel}>Você economizou este mês</Text>
           </View>
-          <Text style={styles.savingsValue}>{MOCK.savingsMonth}</Text>
+          <Text style={styles.savingsValue} numberOfLines={1} adjustsFontSizeToFit>
+            {MOCK.savingsMonth}
+          </Text>
 
           <View style={styles.miniRow}>
             <View style={styles.miniCard}>
               <Text style={styles.miniLabel}>Total economizado</Text>
-              <Text style={styles.miniValue}>{MOCK.savingsTotal}</Text>
+              <Text
+                style={styles.miniValue}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                {MOCK.savingsTotal}
+              </Text>
             </View>
             <View style={styles.miniCard}>
               <Text style={styles.miniLabel}>Consumo do mês</Text>
-              <Text style={styles.miniValue}>{MOCK.consumption}</Text>
+              <Text
+                style={styles.miniValue}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
+                {MOCK.consumption}
+              </Text>
             </View>
           </View>
         </Card>
@@ -100,7 +116,7 @@ export default function HomeScreen() {
                 Sua próxima cobrança vence em{' '}
                 <Text style={styles.chargeDays}>{MOCK.nextChargeDays} dias</Text>
               </Text>
-              <Text style={styles.chargeSub}>
+              <Text style={styles.chargeSub} numberOfLines={1}>
                 {MOCK.nextChargeAmount} · vence {MOCK.nextChargeDate}
               </Text>
             </View>
